@@ -21,7 +21,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .import/part-* | base64 -d > /tmp/meridian-black-car-site.tar.gz
+          : > /tmp/meridian-black-car-site.tar.gz
+          for f in .import/part-*; do
+            echo "decoding $f"
+            base64 -d "$f" >> /tmp/meridian-black-car-site.tar.gz
+          done
           echo "43fe230dba0f01503a500bccef81108b7843d04bf48f942b1024fb722703518d  /tmp/meridian-black-car-site.tar.gz" | sha256sum -c -
           tar -xzf /tmp/meridian-black-car-site.tar.gz --strip-components=1
           rm -rf .import
