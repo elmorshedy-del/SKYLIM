@@ -1,0 +1,25 @@
+# Meridian Black Car — robots.txt
+User-agent: *
+Allow: /
+
+# AI search crawlers — explicitly allowed so we can be cited with real prices.
+User-agent: GPTBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: anthropic-ai
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Bingbot
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://meridianblackcar.com/sitemap.xml
