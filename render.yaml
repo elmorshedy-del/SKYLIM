@@ -10,6 +10,7 @@ databases:
     plan: basic-256mb
     region: virginia
     postgresMajorVersion: "16"
+    diskSizeGB: 1                      # grows on demand later; disk can never shrink
     databaseName: meridian
     user: meridian
     ipAllowList: []
