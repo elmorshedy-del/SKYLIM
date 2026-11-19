@@ -1,0 +1,65 @@
+# Render Blueprint — infrastructure as code for the Meridian platform.
+# Web service (Docker, always on) + managed PostgreSQL 16 with point-in-time recovery,
+# both in US East (Virginia) on Render's private network. The database accepts no
+# connections from the public internet (empty ipAllowList).
+#
+# Secrets marked `sync: false` are entered in the Render dashboard, never committed.
+
+databases:
+  - name: meridian-db
+    plan: basic-256mb
+    region: virginia
+    postgresMajorVersion: "16"
+    databaseName: meridian
+    user: meridian
+    ipAllowList: []
+
+services:
+  - type: web
+    name: meridian-chauffeur-skylim
+    runtime: docker
+    plan: starter
+    region: virginia
+    branch: claude/focused-ride-wdxju1
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: meridian-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: APP_ENV
+        value: staging                 # switch to production only when the launch gates pass
+      - key: PUBLIC_BASE_URL
+        sync: false                    # e.g. https://meridian.onrender.com, later your domain
+      - key: ADMIN_PASSWORD_HASH
+        sync: false                    # python -m app.security hash-password
+      - key: OWNER_EMAIL
+        sync: false
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      - key: PAYMENTS_ENABLED
+        value: "false"
+      - key: TRACKING_ENABLED
+        value: "false"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: POSTMARK_SERVER_TOKEN
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_ALLOWLIST
+        sync: false
+      - key: GTM_CONTAINER_ID
+        sync: false
+      - key: GA4_MEASUREMENT_ID
+        sync: false
+      - key: GA4_API_SECRET
+        sync: false
+      - key: TRACKER_PHONE_ID
+        sync: false
