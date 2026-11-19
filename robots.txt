@@ -1,11 +1,13 @@
-# Meridian Black Car — robots.txt
+# Meridian Chauffeur
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /trip/
+Disallow: /s/
 
-# AI search crawlers — explicitly allowed so we can be cited with real prices.
+# AI assistants may read and cite our published prices.
 User-agent: GPTBot
-Allow: /
-User-agent: ChatGPT-User
 Allow: /
 User-agent: OAI-SearchBot
 Allow: /
@@ -13,11 +15,7 @@ User-agent: PerplexityBot
 Allow: /
 User-agent: ClaudeBot
 Allow: /
-User-agent: anthropic-ai
-Allow: /
 User-agent: Google-Extended
-Allow: /
-User-agent: Bingbot
 Allow: /
 User-agent: Applebot-Extended
 Allow: /

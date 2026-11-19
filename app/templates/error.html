@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ brand.name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>{{ message }}</h1>
+  <p class="muted">If you followed a link from one of our emails, check you have the whole link, or contact us at
+    <a href="mailto:{{ brand.email }}">{{ brand.email }}</a>.</p>
+  <a class="btn btn-dark" href="/">Back to the homepage</a>
+</div>
+{% endblock %}

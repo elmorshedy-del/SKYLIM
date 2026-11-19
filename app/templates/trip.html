@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Trip {{ trip.ref }} · {{ brand.name }}{% endblock %}
+{% block head %}
+{% if trip.tracking %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endif %}
+{% endblock %}
+{% block content %}
+{% set tone = {'confirmed':'ok','en_route':'ok','arrived':'ok','in_vehicle':'ok','completed':'ok',
+               'payment_pending':'warn','cancelled':'bad','declined':'bad','expired':'bad'}.get(trip.status, '') %}
+
+<div class="head">
+  <div>
+    <p class="label">Trip {{ trip.ref }}</p>
+    <h1>{{ trip.status_label }}</h1>
+  </div>
+  <span class="pill {{ tone }}" id="status-pill"><span class="dot {% if trip.tracking %}live{% endif %}"></span>{{ trip.status_label }}</span>
+</div>
+
+{% if notice == 'returned' and trip.status == 'payment_pending' %}
+  <div class="notice ok" role="status">Thank you. Stripe is confirming your payment — this page updates by itself
+    within a minute. You'll also get a receipt by email.</div>
+{% elif notice == 'cancelled' and trip.status == 'payment_pending' %}
+  <div class="notice">Payment wasn't completed. Your car is still held{% if trip.hold_until %} until
+    <span data-local-time="{{ trip.hold_until }}"></span>{% endif %} — you can try again below.</div>
+{% endif %}
+{% if pay_error %}
+  <div class="notice bad" role="alert">{% if pay_error == 'hold_lapsed' %}The hold on this trip has lapsed, so the time
+    was released. Request it again and we'll check the calendar.{% elif pay_error == 'unavailable' %}Online payment
+    isn't open yet — we'll contact you to arrange payment.{% else %}We couldn't open the payment page. Please try again
+    or contact us.{% endif %}</div>
+{% endif %}
+
+{% if trip.payable %}
+<section class="card">
+  <p class="label">Approved — pay to confirm</p>
+  <div class="row"><span>All-in price</span><b class="num">{{ trip.amount_cents|money }}</b></div>
+  {% if trip.price_adjust_reason %}<p class="small muted">Price note: {{ trip.price_adjust_reason }}</p>{% endif %}
+  <p class="small muted" data-local-time="{{ trip.hold_until }}" data-prefix="Your car is held until ">Your car is held for you.</p>
+  <a class="btn btn-primary btn-full btn-xl" href="/trip/{{ token }}/pay">Pay securely</a>
+  <p class="small muted" style="margin-top:10px">{{ methods|join(' · ') }} — processed by Stripe. We never see your card number.</p>
+</section>
+{% elif trip.status == 'requested' %}
+<section class="card flat">
+  <p><b>We have your request.</b> The calendar is checked for the drive to you, your trip and
+  the drive back. You'll get a secure payment link by email once approved — nothing is charged before then.</p>
+</section>
+{% endif %}
+
+{% if trip.tracking %}
+<section class="card map-card" aria-label="Live location">
+  <div id="map" role="img" aria-label="Map showing your chauffeur's last reported position"></div>
+  <div class="map-meta">
+    <span id="pos-status"><span class="dot"></span> Waiting for location…</span>
+    <span class="muted num" id="pos-age"></span>
+  </div>
+  <div class="notice" id="pos-note" hidden style="margin:0 20px 16px"></div>
+</section>
+{% endif %}
+
+{% if trip.chauffeur %}
+<section class="card">
+  <p class="label">Your chauffeur</p>
+  <div class="chauffeur">
+    {% if trip.chauffeur.photo_url %}<img class="avatar" src="{{ trip.chauffeur.photo_url }}" alt="{{ trip.chauffeur.name }}">
+    {% else %}<span class="avatar" aria-hidden="true">{{ trip.chauffeur.name[:1] }}</span>{% endif %}
+    <div>
+      <b style="font-size:1.1rem">{{ trip.chauffeur.name }}</b><br>
+      <span class="muted">{{ [trip.chauffeur.color, trip.chauffeur.vehicle]|select|join(' ') }}</span><br>
+      {% if trip.chauffeur.plate %}<span class="plate">{{ trip.chauffeur.plate }}</span>{% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="card">
+  <p class="label">Trip</p>
+  <div class="row"><span>Pickup</span><b data-local-time="{{ trip.pickup_at }}">{{ trip.pickup_at }}</b></div>
+  <div class="row"><span>From</span><b>{{ trip.pickup_address }}</b></div>
+  <div class="row"><span>To</span><b>{{ trip.dropoff_address }}</b></div>
+  <div class="row"><span>Riders</span><b>{{ trip.passengers }} · {{ trip.large_bags }} large bag{{ '' if trip.large_bags == 1 else 's' }}</b></div>
+  {% if trip.flight_number %}<div class="row"><span>Flight</span><b>{{ trip.flight_number }}</b></div>{% endif %}
+  <div class="row"><span>All-in price</span><b class="num">{{ trip.amount_cents|money }}</b></div>
+  <div class="actions"><a class="btn" href="/trip/{{ token }}/calendar.ics">Add to calendar</a></div>
+</section>
+
+<div class="grid2">
+  <section class="card">
+    <p class="label">Your cabin</p>
+    <ul class="check">{% for item in trip.cabin %}<li>{{ item }}</li>{% endfor %}</ul>
+  </section>
+  <section class="card">
+    <p class="label">Progress</p>
+    <ol class="tl">
+      {% set ns = namespace(current=true) %}
+      {% for step in trip.timeline %}
+        <li class="{% if step.at %}done{% elif ns.current and trip.status not in ['cancelled','declined','expired'] %}now{% set ns.current = false %}{% endif %}">
+          <b>{{ step.label }}</b>{% if step.at %}<time data-local-time="{{ step.at }}">{{ step.at }}</time>{% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+</div>
+
+{% if trip.can_share %}
+<section class="card">
+  <p class="label">Share the car's location</p>
+  <p class="small muted">Send someone meeting you a link that shows only the car's position and status — no names,
+    numbers or addresses. It stops working when your trip ends.</p>
+  <div class="actions">
+    <button class="btn" id="share-btn" type="button">{{ 'Copy a new link' if trip.share_active else 'Create a share link' }}</button>
+    {% if trip.share_active %}<button class="btn btn-danger" id="unshare-btn" type="button">Stop sharing</button>{% endif %}
+  </div>
+  <p class="small" id="share-out" role="status"></p>
+</section>
+{% endif %}
+
+{% if trip.can_cancel %}
+<section class="card flat">
+  <details>
+    <summary>Need to cancel?</summary>
+    <p class="small muted">{{ policy.summary }}</p>
+    {% if trip.free_cancellation %}<p class="small">Cancelling now is free{% if trip.status == 'confirmed' %} — you'll be refunded in full{% endif %}.</p>
+    {% else %}<p class="small">This is inside the {{ policy.free_cancel_hours }}-hour window, so any refund is reviewed individually.</p>{% endif %}
+    <button class="btn btn-danger" id="cancel-btn" type="button">Cancel this trip</button>
+    <p class="small" id="cancel-out" role="status"></p>
+  </details>
+</section>
+{% endif %}
+
+<script id="trip-config" type="application/json">{{ {"token": token, "status": trip.status, "tracking": trip.tracking,
+  "tiles": tiles, "attribution": attribution, "staleAfter": stale_after}|tojson }}</script>
+{% endblock %}
+{% block scripts %}
+{% if trip.tracking %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endif %}
+<script src="/static/trip.js" defer></script>
+{% endblock %}

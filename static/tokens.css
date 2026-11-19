@@ -1,0 +1,23 @@
+/* Design tokens — the single source for colour, type, radius and elevation.
+   Derived from Base Web, Uber's open-source design system (MIT): a black/white
+   core, a neutral grey ramp and semantic colours. Champagne is a micro-accent. */
+:root{
+  --black:#000; --white:#fff;
+  --g50:#F6F6F6; --g100:#EEEEEE; --g200:#E2E2E2; --g300:#CBCBCB; --g400:#AFAFAF;
+  --g500:#757575; --g600:#545454; --g700:#333333; --g800:#1F1F1F; --g900:#141414;
+  --positive:#05944F; --warning:#BC8B2C; --negative:#E11900; --info:#276EF1; --live:#06C167;
+  --champagne:#C8B48A;
+
+  --bg:var(--white); --surface:var(--white); --subtle:var(--g50); --line:var(--g200);
+  --tx:var(--black); --tx-2:var(--g600);
+
+  --r-xs:6px; --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:24px;
+  --sh:0 1px 2px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);
+  --sh-lg:0 12px 40px rgba(0,0,0,.18);
+  --ff:'Inter Tight',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --mx:1200px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#000;--surface:var(--g900);--subtle:var(--g800);--line:var(--g700);--tx:#fff;--tx-2:var(--g400);
+        --sh:0 1px 2px rgba(0,0,0,.6)}
+}

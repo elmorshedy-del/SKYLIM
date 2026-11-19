@@ -1,225 +1,345 @@
 """
-Single source of truth for county pricing + service data.
-Consumed by build.py to generate index.html, pricing.md, and sitemap.xml.
+Single source of truth for the business. Edit here; code and pages follow.
 
-PRICING MODEL (as specified by client):
-  - "NYC" tier  = ONE flat rate covering Manhattan + LaGuardia (LGA) + all five boroughs
-  - "JFK" tier  = separate, higher flat rate (JFK is the priciest run from NJ)
-  - Rates are ALL-IN: tolls, gratuity, meet & greet, Manhattan congestion fee,
-    NJ surcharge, flight tracking, 60 min free wait. No surge, ever.
-  - Positioned ~15-20% under researched market rates.
+Consumed by:
+  * build.py / marketing/  -> index.html, pricing.md, robots.txt, sitemap.xml
+  * app/                   -> server-side quotes, eligibility, launch gates
+  * tools/rate_model.py    -> the pricing proposal for owner review
 
-market_nyc / market_jfk = researched typical competitor SUV rate, used to show savings.
-confidence: "verified" = hard published competitor rate found; "estimated" = extrapolated by distance.
+TRUTH RULES (enforced by app/config.py launch gates before payments go live):
+  * no placeholder contact details, invented reviews, ratings, ride counts,
+    experience claims, licence numbers or amenities that are not in the car
+  * prices are shown as *estimates confirmed before payment* until the owner
+    sets PRICING["approved"] = True
 """
 
+# ----------------------------------------------------------------- business
 BRAND = {
-    "name": "Meridian Black Car",          # <-- PLACEHOLDER: swap for real company name
+    "name": "Meridian Chauffeur",            # working name: confirm NJ registration, domain and trademark search
     "short": "Meridian",
-    "domain": "meridianblackcar.com",       # <-- PLACEHOLDER
-    "phone_display": "(201) 555-0100",      # <-- PLACEHOLDER
-    "phone_raw": "+12015550100",            # <-- PLACEHOLDER
-    "email": "ride@meridianblackcar.com",   # <-- PLACEHOLDER
-    "address": "1 Riverfront Plaza, Newark, NJ 07102",  # <-- PLACEHOLDER
-    "tlc": "TLC #XXXXXX",                   # <-- PLACEHOLDER: real TLC / NJ authority no.
-    "years": 10,
-    "rating": "4.9",
-    "review_count": 1284,
-    "rides": "38,000",
+    "descriptor": "Private chauffeur service",
+    "domain": "meridianblackcar.com",         # PLACEHOLDER — the real domain
+    "phone_display": "(201) 555-0100",        # PLACEHOLDER — a real line that is answered or texted back
+    "phone_raw": "+12015550100",              # PLACEHOLDER
+    "email": "ride@meridianblackcar.com",     # PLACEHOLDER — the real reservations inbox
+    "base_town": "Essex County, New Jersey",  # PLACEHOLDER — public town shown as a service-area business
+    "authority_display": "",                  # e.g. "NJ limousine licence #… · USDOT #…" — only once issued
+    "placeholder": True,                      # set False once every field above is real
 }
 
-# name, slug, region, nyc, jfk, market_nyc, market_jfk, drive_min, drive_max, towns, confidence
-COUNTIES = [
-    # ---------- NORTH JERSEY ----------
-    ("Hudson County", "hudson", "North Jersey", 109, 189, 130, 235, 15, 30,
-     ["Jersey City", "Hoboken", "Bayonne", "Union City", "Weehawken", "Secaucus", "North Bergen", "Kearny"],
-     "verified"),
-    ("Bergen County", "bergen", "North Jersey", 139, 215, 170, 265, 25, 45,
-     ["Hackensack", "Fort Lee", "Englewood", "Paramus", "Ridgewood", "Teaneck", "Fair Lawn", "Mahwah"],
-     "verified"),
-    ("Essex County", "essex", "North Jersey", 135, 205, 165, 250, 30, 45,
-     ["Newark", "Montclair", "Livingston", "Bloomfield", "West Orange", "Millburn", "Short Hills", "Belleville"],
-     "estimated"),
-    ("Union County", "union", "North Jersey", 135, 199, 160, 245, 35, 50,
-     ["Elizabeth", "Westfield", "Summit", "Cranford", "Scotch Plains", "Springfield", "Berkeley Heights", "Linden"],
-     "estimated"),
-    ("Passaic County", "passaic", "North Jersey", 145, 215, 175, 265, 30, 50,
-     ["Paterson", "Clifton", "Wayne", "Passaic", "Hawthorne", "Totowa", "West Milford"],
-     "estimated"),
-    ("Morris County", "morris", "North Jersey", 179, 239, 215, 290, 45, 65,
-     ["Morristown", "Parsippany", "Madison", "Chatham", "Florham Park", "Randolph", "Denville", "Mendham"],
-     "estimated"),
-    ("Sussex County", "sussex", "North Jersey", 235, 265, 285, 320, 70, 90,
-     ["Newton", "Sparta", "Vernon", "Hopatcong", "Franklin", "Hamburg"],
-     "estimated"),
-    ("Warren County", "warren", "North Jersey", 249, 279, 300, 340, 75, 95,
-     ["Phillipsburg", "Hackettstown", "Washington", "Belvidere", "Blairstown"],
-     "estimated"),
+OPERATIONS = {
+    # Flip only when the municipal limousine licence (N.J.S.A. 48:16-13 et seq.), the $1.5M liability
+    # policy filed under N.J.S.A. 48:16-14, livery registration and any federal registration are in hand.
+    "authority_confirmed": False,
+    "home_base": "essex",                     # place code the car starts and ends its day — CONFIRM
+    "hours_label": "Reservations 24/7",
+    # Which trips may be booked online. A trip is classified by its two ends:
+    #   nj_intrastate    both ends in New Jersey                      (NJ limousine licence)
+    #   interstate       ends in different states, e.g. NJ <-> NY      (49 U.S.C. 14501(d) + federal registration)
+    #   other_intrastate both ends in one other state, e.g. NYC -> JFK (needs NYC TLC base affiliation or a partner)
+    # Routes that are not allowed are never refused outright: they become "we'll arrange it" requests.
+    "authority": {"nj_intrastate": True, "interstate": True, "other_intrastate": False},
+}
 
-    # ---------- CENTRAL JERSEY ----------
-    ("Middlesex County", "middlesex", "Central Jersey", 159, 209, 195, 255, 45, 65,
-     ["New Brunswick", "Edison", "Woodbridge", "Piscataway", "Perth Amboy", "Metuchen", "Old Bridge"],
-     "estimated"),
-    ("Somerset County", "somerset", "Central Jersey", 189, 239, 230, 290, 55, 75,
-     ["Somerville", "Bridgewater", "Bernardsville", "Bedminster", "Franklin Township", "Hillsborough"],
-     "estimated"),
-    ("Monmouth County", "monmouth", "Central Jersey", 215, 259, 260, 313, 60, 85,
-     ["Red Bank", "Freehold", "Middletown", "Asbury Park", "Rumson", "Colts Neck", "Holmdel"],
-     "verified"),
-    ("Mercer County", "mercer", "Central Jersey", 229, 249, 280, 300, 70, 90,
-     ["Princeton", "Trenton", "Hamilton", "Lawrenceville", "West Windsor", "Hopewell"],
-     "verified"),
-    ("Hunterdon County", "hunterdon", "Central Jersey", 255, 289, 310, 350, 70, 90,
-     ["Flemington", "Clinton", "Lambertville", "Readington", "Califon"],
-     "estimated"),
-    ("Ocean County", "ocean", "Central Jersey", 245, 279, 300, 340, 75, 100,
-     ["Toms River", "Brick", "Point Pleasant", "Lakewood", "Jackson", "Manahawkin"],
-     "estimated"),
+# Launch fleet. Seeded into the database on boot; later vehicles and chauffeurs are added as rows
+# (vehicles/drivers tables) without code changes. Nothing here is advertised until it is true.
+VEHICLE = {
+    "code": "escalade-2021",
+    "display_name": "2021 Cadillac Escalade",
+    "class_name": "Cadillac Escalade",
+    "color": None,                            # e.g. "Black" — CONFIRM
+    "trim": None,                             # Luxury / Premium Luxury / Sport / Platinum — CONFIRM
+    "wheelbase": None,                        # "standard" or "ESV" — CONFIRM (changes luggage space a lot)
+    "max_passengers": 6,                      # second-row captain's chairs + third row
+    # Signature features of the actual vehicle (shown large on the site).
+    "features": [
+        ("captains", "Captain's chairs", "Two individual second-row seats with an aisle between them. Your own "
+                                         "space to work, take a call or close your eyes."),
+        ("sunroof", "Panoramic sunroof", "Open sky over the rear cabin — or the shade drawn for privacy and rest."),
+        ("wifi", "Onboard Wi-Fi", "Connected from the moment the door closes. Network details are on the "
+                                  "card beside your seat."),
+    ],
+    "child_seats": [{"type": "TO CONFIRM (e.g. convertible / booster)", "count": 1}],
+    # Conservative luggage limits for a standard-wheelbase Escalade until a real loading test is
+    # done: (max passengers, max large checked bags). Anything beyond is reviewed, not auto-accepted.
+    "luggage_rules": [(3, 5), (4, 4), (5, 2), (6, 1)],
+    "capacity_tested": False,
+}
 
-    # ---------- SOUTH JERSEY & SHORE ----------
-    ("Burlington County", "burlington", "South Jersey", 305, 335, 370, 405, 90, 115,
-     ["Mount Laurel", "Moorestown", "Medford", "Marlton", "Willingboro", "Bordentown"],
-     "estimated"),
-    ("Camden County", "camden", "South Jersey", 319, 355, 390, 430, 95, 120,
-     ["Cherry Hill", "Camden", "Haddonfield", "Voorhees", "Collingswood", "Gloucester City"],
-     "estimated"),
-    ("Gloucester County", "gloucester", "South Jersey", 329, 365, 400, 440, 100, 125,
-     ["Deptford", "Washington Township", "Glassboro", "Woodbury", "Mullica Hill"],
-     "estimated"),
-    ("Cumberland County", "cumberland", "South Jersey", 349, 385, 430, 470, 110, 140,
-     ["Vineland", "Millville", "Bridgeton"],
-     "estimated"),
-    ("Salem County", "salem", "South Jersey", 359, 395, 440, 480, 110, 140,
-     ["Salem", "Pennsville", "Woodstown", "Carneys Point"],
-     "estimated"),
-    ("Atlantic County", "atlantic", "South Jersey", 565, 639, 690, 780, 120, 150,
-     ["Atlantic City", "Egg Harbor Township", "Hammonton", "Galloway", "Ventnor", "Brigantine"],
-     "verified"),
-    ("Cape May County", "cape-may", "South Jersey", 729, 829, 890, 1013, 150, 190,
-     ["Cape May", "Wildwood", "Ocean City", "Sea Isle City", "Avalon", "Stone Harbor"],
-     "verified"),
+DRIVER = {"code": "ahmed", "display_name": "Ahmed"}     # first chauffeur; name shown to confirmed riders
+
+# Everything on board, grouped the way executives think about a ride. Only available=True is shown.
+AMENITY_GROUPS = ["Work", "Comfort", "Refreshment", "Care"]
+AMENITIES = {
+    "wifi":     {"group": "Work", "label": "Onboard Wi-Fi", "available": True},   # test with two devices
+    "charging": {"group": "Work", "label": "Fast charging — USB-C and Lightning", "available": True},
+    "quiet":    {"group": "Work", "label": "A quiet cabin for calls, on request", "available": True},
+    "captains": {"group": "Comfort", "label": "Second-row captain's chairs", "available": True},
+    "sunroof":  {"group": "Comfort", "label": "Panoramic sunroof", "available": True},
+    "climate":  {"group": "Comfort", "label": "Cabin set to your temperature before pickup", "available": True},
+    "blanket":  {"group": "Comfort", "label": "Fleece blanket", "available": True},
+    "water":    {"group": "Refreshment", "label": "Chilled still water", "available": True},
+    "mints":    {"group": "Refreshment", "label": "Mints", "available": True},
+    "towels":   {"group": "Refreshment", "label": "Unscented refresh towels", "available": True},
+    "umbrella": {"group": "Care", "label": "Umbrella at the door", "available": True},
+    "luggage":  {"group": "Care", "label": "Every bag handled for you", "available": True},
+    "child_seat": {"group": "Care", "label": "Child seat on request", "available": True},
+    "tissues":  {"group": "Care", "label": "Tissues", "available": True},
+}
+
+POLICY = {
+    "version": "2026-11-v1-draft",            # bump on any change; each booking stores the version accepted
+    "approved": False,                        # owner sign-off required before payments go live
+    "free_cancel_hours": 24,
+    "summary": "Complimentary cancellation up to 24 hours before pickup. Within 24 hours, refunds are reviewed "
+               "individually. Payment is taken only once your reservation is confirmed.",
+    "wait_included_min": 15,
+}
+
+# ---------------------------------------------------------------- services
+# Service lines shown on the site. "booking" says how each is reserved online.
+SERVICES = [
+    ("airport", "Airports & private aviation",
+     "Newark, JFK and LaGuardia — and Teterboro, Morristown and Westchester for private flights. "
+     "Met at the terminal or planeside, bags handled.", "transfer"),
+    ("hourly", "By the hour",
+     "A car and chauffeur at your disposal for meetings, roadshows and the in-between. "
+     "Plans change; your chauffeur waits.", "hourly"),
+    ("transfer", "Point to point",
+     "Office to dinner, home to the city, hotel to the next appointment — any address across the region.",
+     "transfer"),
+    ("events", "Evenings & occasions",
+     "Galas, Broadway, the Garden, weddings. Dropped at the door, collected when you are ready.", "hourly"),
+    ("corporate", "Corporate accounts",
+     "Executive travel and client hosting with one point of contact and consolidated monthly invoicing.",
+     "inquiry"),
+    ("long", "Long distance",
+     "Philadelphia, the Hamptons, the Shore and Connecticut — door to door, in comfort.", "transfer"),
 ]
 
-REGIONS = ["North Jersey", "Central Jersey", "South Jersey"]
-
-# Vehicle tiers — Good / Better / Best. "Better" (Executive SUV) is the anchor/recommended tier.
-VEHICLES = [
-    {
-        "id": "suv",
-        "name": "Executive SUV",
-        "examples": "Chevrolet Suburban / GMC Yukon XL",
-        "pax": 6, "bags": 6,
-        "multiplier": 1.00,
-        "recommended": True,
-        "blurb": "Our core vehicle. Full-size, three rows, room for six passengers and six large bags without stacking.",
-        "features": ["6 passengers", "6 large bags", "Bottled water", "Phone chargers", "Wi-Fi on request"],
-    },
-    {
-        "id": "luxury",
-        "name": "Luxury SUV",
-        "examples": "Cadillac Escalade ESV",
-        "pax": 6, "bags": 7,
-        "multiplier": 1.22,
-        "recommended": False,
-        "blurb": "Escalade ESV with captain's chairs, quilted leather and the quietest cabin in the fleet.",
-        "features": ["6 passengers", "7 large bags", "Captain's chairs", "Rear climate control", "Privacy glass"],
-    },
-    {
-        "id": "sprinter",
-        "name": "Executive Sprinter",
-        "examples": "Mercedes-Benz Sprinter",
-        "pax": 11, "bags": 12,
-        "multiplier": 1.85,
-        "recommended": False,
-        "blurb": "For teams, families and golf bags. Stand-up cabin, conference seating, luggage bay.",
-        "features": ["11 passengers", "12+ large bags", "Stand-up cabin", "Conference seating", "USB-C at every seat"],
-    },
+# ------------------------------------------------------------------ places
+# Bookable pickup and destination areas. Exact addresses are taken at booking; these
+# drive price, timing and authority. mta = MTA bridge/tunnel crossings each way from NJ.
+PLACE_GROUPS = ["Airports & private aviation", "New York City", "New Jersey", "Beyond"]
+PLACES = [
+    {"code": "ewr", "name": "Newark Liberty International (EWR)", "short": "Newark (EWR)", "kind": "airport",
+     "state": "NJ", "group": "Airports & private aviation", "lat": 40.6895, "lon": -74.1745, "crossing_min": 10},
+    {"code": "jfk", "name": "JFK International", "short": "JFK", "kind": "airport", "state": "NY",
+     "group": "Airports & private aviation", "lat": 40.6413, "lon": -73.7781, "crossing_min": 25, "mta": 1},
+    {"code": "lga", "name": "LaGuardia (LGA)", "short": "LaGuardia", "kind": "airport", "state": "NY",
+     "group": "Airports & private aviation", "lat": 40.7769, "lon": -73.8740, "crossing_min": 20, "mta": 1},
+    {"code": "teb", "name": "Teterboro (TEB) — private aviation", "short": "Teterboro", "kind": "aviation",
+     "state": "NJ", "group": "Airports & private aviation", "lat": 40.8501, "lon": -74.0608, "crossing_min": 5},
+    {"code": "mmu", "name": "Morristown (MMU) — private aviation", "short": "Morristown", "kind": "aviation",
+     "state": "NJ", "group": "Airports & private aviation", "lat": 40.7994, "lon": -74.4149, "crossing_min": 5},
+    {"code": "hpn", "name": "Westchester County (HPN)", "short": "Westchester (HPN)", "kind": "airport",
+     "state": "NY", "group": "Airports & private aviation", "lat": 41.0670, "lon": -73.7076, "crossing_min": 10},
+    {"code": "phl", "name": "Philadelphia International (PHL)", "short": "Philadelphia (PHL)", "kind": "airport",
+     "state": "PA", "group": "Airports & private aviation", "lat": 39.8744, "lon": -75.2424, "crossing_min": 15},
+    {"code": "manhattan", "name": "Manhattan", "short": "Manhattan", "kind": "city", "state": "NY",
+     "group": "New York City", "lat": 40.7549, "lon": -73.9840, "crossing_min": 20,
+     "towns": ["Midtown", "Downtown", "Upper East Side", "Upper West Side", "Tribeca", "Financial District"]},
+    {"code": "brooklyn", "name": "Brooklyn", "short": "Brooklyn", "kind": "city", "state": "NY",
+     "group": "New York City", "lat": 40.6782, "lon": -73.9442, "crossing_min": 20, "mta": 1},
+    {"code": "queens", "name": "Queens", "short": "Queens", "kind": "city", "state": "NY",
+     "group": "New York City", "lat": 40.7282, "lon": -73.7949, "crossing_min": 20, "mta": 1},
+    {"code": "bronx", "name": "The Bronx", "short": "Bronx", "kind": "city", "state": "NY",
+     "group": "New York City", "lat": 40.8448, "lon": -73.8648, "crossing_min": 15},
+    {"code": "staten", "name": "Staten Island", "short": "Staten Island", "kind": "city", "state": "NY",
+     "group": "New York City", "lat": 40.5795, "lon": -74.1502, "crossing_min": 10},
+    {"code": "hudson", "name": "Hudson County", "short": "Hudson", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "North Jersey", "lat": 40.728, "lon": -74.078, "towns": ["Jersey City", "Hoboken", "Bayonne", "Union City", "Weehawken", "Secaucus", "North Bergen", "Kearny"]},
+    {"code": "bergen", "name": "Bergen County", "short": "Bergen", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "North Jersey", "lat": 40.886, "lon": -74.043, "towns": ["Hackensack", "Fort Lee", "Englewood", "Paramus", "Ridgewood", "Teaneck", "Fair Lawn", "Mahwah"]},
+    {"code": "essex", "name": "Essex County", "short": "Essex", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "North Jersey", "lat": 40.79, "lon": -74.23, "towns": ["Newark", "Montclair", "Livingston", "Bloomfield", "West Orange", "Millburn", "Short Hills", "Belleville"]},
+    {"code": "union", "name": "Union County", "short": "Union", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "North Jersey", "lat": 40.66, "lon": -74.3, "towns": ["Elizabeth", "Westfield", "Summit", "Cranford", "Scotch Plains", "Springfield", "Berkeley Heights", "Linden"]},
+    {"code": "passaic", "name": "Passaic County", "short": "Passaic", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "North Jersey", "lat": 40.9, "lon": -74.2, "towns": ["Paterson", "Clifton", "Wayne", "Passaic", "Hawthorne", "Totowa", "West Milford"]},
+    {"code": "morris", "name": "Morris County", "short": "Morris", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "North Jersey", "lat": 40.797, "lon": -74.481, "towns": ["Morristown", "Parsippany", "Madison", "Chatham", "Florham Park", "Randolph", "Denville", "Mendham"]},
+    {"code": "sussex", "name": "Sussex County", "short": "Sussex", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "North Jersey", "lat": 41.058, "lon": -74.753, "towns": ["Newton", "Sparta", "Vernon", "Hopatcong", "Franklin", "Hamburg"]},
+    {"code": "warren", "name": "Warren County", "short": "Warren", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "North Jersey", "lat": 40.76, "lon": -74.98, "towns": ["Phillipsburg", "Hackettstown", "Washington", "Belvidere", "Blairstown"]},
+    {"code": "middlesex", "name": "Middlesex County", "short": "Middlesex", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "Central Jersey", "lat": 40.5, "lon": -74.4, "towns": ["New Brunswick", "Edison", "Woodbridge", "Piscataway", "Perth Amboy", "Metuchen", "Old Bridge"]},
+    {"code": "somerset", "name": "Somerset County", "short": "Somerset", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "Central Jersey", "lat": 40.59, "lon": -74.62, "towns": ["Somerville", "Bridgewater", "Bernardsville", "Bedminster", "Franklin Township", "Hillsborough"]},
+    {"code": "monmouth", "name": "Monmouth County", "short": "Monmouth", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "Central Jersey", "lat": 40.3, "lon": -74.15, "towns": ["Red Bank", "Freehold", "Middletown", "Asbury Park", "Rumson", "Colts Neck", "Holmdel"]},
+    {"code": "mercer", "name": "Mercer County", "short": "Mercer", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "Central Jersey", "lat": 40.3, "lon": -74.67, "towns": ["Princeton", "Trenton", "Hamilton", "Lawrenceville", "West Windsor", "Hopewell"]},
+    {"code": "hunterdon", "name": "Hunterdon County", "short": "Hunterdon", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "Central Jersey", "lat": 40.51, "lon": -74.86, "towns": ["Flemington", "Clinton", "Lambertville", "Readington", "Califon"]},
+    {"code": "ocean", "name": "Ocean County", "short": "Ocean", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "Central Jersey", "lat": 39.95, "lon": -74.2, "towns": ["Toms River", "Brick", "Point Pleasant", "Lakewood", "Jackson", "Manahawkin"]},
+    {"code": "burlington", "name": "Burlington County", "short": "Burlington", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "South Jersey", "lat": 39.95, "lon": -74.9, "towns": ["Mount Laurel", "Moorestown", "Medford", "Marlton", "Willingboro", "Bordentown"]},
+    {"code": "camden", "name": "Camden County", "short": "Camden", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "South Jersey", "lat": 39.93, "lon": -75.03, "towns": ["Cherry Hill", "Camden", "Haddonfield", "Voorhees", "Collingswood", "Gloucester City"]},
+    {"code": "gloucester", "name": "Gloucester County", "short": "Gloucester", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "South Jersey", "lat": 39.78, "lon": -75.12, "towns": ["Deptford", "Washington Township", "Glassboro", "Woodbury", "Mullica Hill"]},
+    {"code": "cumberland", "name": "Cumberland County", "short": "Cumberland", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "South Jersey", "lat": 39.49, "lon": -75.03, "towns": ["Vineland", "Millville", "Bridgeton"]},
+    {"code": "salem", "name": "Salem County", "short": "Salem", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "South Jersey", "lat": 39.62, "lon": -75.4, "towns": ["Salem", "Pennsville", "Woodstown", "Carneys Point"]},
+    {"code": "atlantic", "name": "Atlantic County", "short": "Atlantic", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "South Jersey", "lat": 39.43, "lon": -74.55, "towns": ["Atlantic City", "Egg Harbor Township", "Hammonton", "Galloway", "Ventnor", "Brigantine"]},
+    {"code": "cape-may", "name": "Cape May County", "short": "Cape May", "kind": "area", "state": "NJ",
+     "group": "New Jersey", "region": "South Jersey", "lat": 39.08, "lon": -74.82, "towns": ["Cape May", "Wildwood", "Ocean City", "Sea Isle City", "Avalon", "Stone Harbor"]},
+    {"code": "westchester", "name": "Westchester County, NY", "short": "Westchester", "kind": "area", "state": "NY",
+     "group": "Beyond", "lat": 41.0340, "lon": -73.7629, "crossing_min": 10,
+     "towns": ["White Plains", "Scarsdale", "Rye", "Bronxville", "Chappaqua", "Purchase"]},
+    {"code": "nassau", "name": "Nassau County (Long Island), NY", "short": "Long Island", "kind": "area",
+     "state": "NY", "group": "Beyond", "lat": 40.7400, "lon": -73.5900, "crossing_min": 20, "mta": 1,
+     "towns": ["Garden City", "Great Neck", "Manhasset", "Oyster Bay", "Roslyn"]},
+    {"code": "hamptons", "name": "The Hamptons, NY", "short": "The Hamptons", "kind": "area", "state": "NY",
+     "group": "Beyond", "lat": 40.9634, "lon": -72.1848, "crossing_min": 20, "mta": 1,
+     "towns": ["Southampton", "East Hampton", "Bridgehampton", "Sag Harbor", "Montauk"]},
+    {"code": "fairfield", "name": "Fairfield County, CT", "short": "Fairfield County", "kind": "area",
+     "state": "CT", "group": "Beyond", "lat": 41.0534, "lon": -73.5387, "crossing_min": 10, "mta": 1,
+     "towns": ["Greenwich", "Stamford", "Darien", "New Canaan", "Westport"]},
+    {"code": "philadelphia", "name": "Philadelphia, PA", "short": "Philadelphia", "kind": "city", "state": "PA",
+     "group": "Beyond", "lat": 39.9526, "lon": -75.1652, "crossing_min": 15},
 ]
 
+# Shown on the site as "from" prices. Each must be a route the authority rules allow.
+POPULAR_JOURNEYS = [("teb", "manhattan"), ("bergen", "jfk"), ("hudson", "ewr"), ("morris", "ewr"),
+                    ("essex", "lga"), ("mercer", "ewr"), ("monmouth", "jfk"), ("manhattan", "philadelphia"),
+                    ("westchester", "ewr"), ("fairfield", "teb")]
+
+# ----------------------------------------------------------------- pricing
+# Inputs to the cost model in app/domain/rates.py. Every number is the owner's to confirm.
+PRICING = {
+    "approved": False,                    # owner flips to True; until then prices are "estimates"
+    "version": "2026-11-19-proposal",
+    # by the hour, all-in (gratuity included)
+    "hourly_cents": 14500,                # benchmark: Escalade hourly published ~$125/h + gratuity in NYC
+    "hourly_min_hours": 3,
+    "hourly_max_hours": 12,
+    # point to point: price = committed time x rate + running cost + tolls + fixed share, grossed up for card fees
+    "target_hourly_cents": 7500,          # chauffeur pay + vehicle margin per committed hour
+    "running_cents_per_mile": 60,         # fuel (~15 mpg at ~$3.30) + tyres, service, depreciation
+    "fixed_cents_per_trip": 2200,         # livery insurance, licences, phone, hosting / expected trips
+    "card_fee_rate": 0.029, "card_fee_fixed_cents": 30,
+    "min_fare_cents": 12500,
+    "max_committed_min_for_instant_price": 480,
+    # drive-time planning model (straight line x detour, distance-dependent speed, crossing penalty)
+    "detour_factor": 1.3, "base_mph": 30, "max_extra_mph": 25, "mph_per_mile": 0.25,
+    "early_arrival_min": 10, "curbside_min": 10, "min_approach_min": 15,
+    "airport_wait_min": 45, "airport_parking_cents": 1200,
+    "traffic_allowance": 1.2, "return_traffic_allowance": 1.1,
+    # tolls — PANYNJ E-ZPass peak, class 1, 2026 table ($16.79, collected entering NY only);
+    # Manhattan CBD charge $9 peak less up to $3 tunnel credit.
+    "panynj_crossing_cents": 1679, "cbd_net_cents": 600,
+    "mta_bridge_cents": 750,              # VERIFY current MTA E-ZPass bridge/tunnel toll
+    "delaware_bridge_cents": 500,         # VERIFY Delaware River crossing into Pennsylvania
+    "nj_toll_cents_per_mile": 6,          # Turnpike / Parkway approximation
+    "service_buffer_min": 20,             # padding after the empty return before the next job
+    # Launch offer. List prices stay at the long-run level (the reference price clients remember);
+    # the introductory offer is shown as a time-boxed discount from them. Ending a discount meets far
+    # less resistance than raising a posted price (Kahneman, Knetsch & Thaler, AER 1986, Proposition 4).
+    "introductory": {"active": False, "label": "Founding client rate", "percent_off": 15,
+                     "ends_local": "2027-02-28T23:59"},
+}
+
+# Competitive calibration — what clients compare us with. Add real checks before launch
+# (Uber app, 10 routes x 3 times of day). all_in = fare + tolls + typical gratuity.
+BENCHMARKS = [
+    {"route": ("bergen", "jfk"), "who": "Air Brook (SUV)", "all_in_cents": 35500, "checked": "2026-11-19",
+     "source": "airbrook.com: from $284.40 + tolls + >=15% gratuity"},
+    {"route": None, "who": "Escalade ESV hourly, NYC", "all_in_cents": 15000, "unit": "hour", "checked": "2026-10",
+     "source": "blackcarservice.nyc published hourly rate incl. gratuity"},
+    {"route": None, "who": "Uber Black SUV, NYC 5 mi / 16 min", "all_in_cents": 11000, "checked": "2026-10-11",
+     "source": "fareestimate.com $75-107 excl. tolls, fees and tip (midpoint + 20% tip)"},
+]
+
+# ------------------------------------------------------------------- voice
+VOICE = {
+    "mantra": "No surprises.",                   # internal test for every decision
+    "tagline": "Expect exactly.",
+    "tagline_alternatives": ["Set before you sit.", "Your time, attended to."],
+    "promise": "We would rather decline tonight than be late tomorrow.",
+    "tone": "Five-star hospitality: composed, precise, warm, discreet. Short sentences. No exclamation marks. "
+            "Never: cheap, deal, luxury, elevate, VIP, seamless, world-class.",
+    "standard": [
+        ("A Cadillac Escalade, every time", "Second-row captain's chairs, a panoramic sunroof and onboard Wi-Fi. "
+                                            "Never a downgrade."),
+        ("All-inclusive pricing", "Tolls, congestion charges and gratuity included. The quote is the receipt."),
+        ("Only times we can keep", "Every time offered is checked against the calendar — the drive to you, "
+                                   "your journey and the drive back."),
+        ("Discretion as standard", "Your itinerary, your calls and your conversations stay in the car."),
+        ("Real-time, honestly", "Your chauffeur's actual position and when it was reported. Never a guess."),
+    ],
+    "lines": [
+        "Your office between appointments.",
+        "The only surge here is legroom.",
+        "Tolls ride free. So does the gratuity.",
+        "The quote is the receipt.",
+        "Manhattan looks better through a panoramic roof.",
+        "Your laptop opens before the door closes.",
+        "Captain's chairs. Nobody climbs over anybody.",
+    ],
+    "seasonal": {
+        "thanksgiving": [
+            "Skip the airport parking. Not the pie.",
+            "The day before Thanksgiving is one of the worst on the road. Reserve your Wednesday ride early.",
+            "Grandma gets the captain's chair.",
+        ],
+    },
+}
+
+# ----------------------------------------------------------------- content
 INCLUDED = [
-    ("All tolls", "GWB, Lincoln, Holland, Turnpike — every toll on your route."),
-    ("Gratuity", "Standard driver gratuity is already in the price. Nothing expected at the curb."),
-    ("Manhattan congestion fee", "The $9 CBD charge below 60th St is covered."),
-    ("NJ surcharge", "The $20 New Jersey origination surcharge most operators add on. Covered."),
-    ("Meet &amp; greet", "Curbside or inside the terminal with a name board. Your choice, same price."),
-    ("Flight tracking", "We watch your tail number. Land early or three hours late, your driver is there."),
-    ("60 minutes free wait", "Domestic arrivals. 90 minutes on international."),
-    ("Free cancellation", "Up to 60 minutes before pickup. No fee, no argument."),
+    ("Tolls and congestion charges", "Every bridge, tunnel and congestion charge on your route."),
+    ("Gratuity", "Included. Nothing is expected at the door."),
+    ("Meet and greet", "At the terminal, the FBO or your lobby."),
+    ("Waiting time", "15 minutes at your door; more for arrivals, by arrangement."),
+    ("Your cabin, prepared", "Temperature, music and conversation set before you sit."),
 ]
 
 FAQS = [
-    ("How much does a car service from New Jersey to NYC cost?",
-     "Our rate depends only on which New Jersey county you are picked up in, and whether you are going to JFK or anywhere else in New York City. "
-     "It ranges from $109 for Hudson County into Manhattan up to $729 from Cape May. Every price is all-in and fixed at booking — "
-     "tolls, gratuity, congestion fee and wait time are already included, and we never apply surge pricing."),
-
-    ("Why is there one price for all of NYC but a separate price for JFK?",
-     "Because JFK is genuinely the longest and most expensive run from New Jersey, while Manhattan, LaGuardia, Brooklyn, Queens and the Bronx "
-     "sit close enough together that a single flat rate is fair for all of them. Two prices per county is all you need to remember, "
-     "and LaGuardia riders get the better end of the deal."),
-
-    ("Is LaGuardia included in the standard NYC rate?",
-     "Yes. LGA is priced the same as Manhattan and every borough. Only JFK carries a higher rate. "
-     "That makes us meaningfully cheaper than operators who charge a separate airport premium for LaGuardia."),
-
-    ("Do I have to call anyone to book or to find my driver?",
-     "No, and that is the entire point. You book online in about 60 seconds, pay through the portal, and get a confirmation. "
-     "From there you track your driver live on a map and text them directly in the browser. There is no dispatcher to phone and no "
-     "\"where is my car\" call to make."),
-
-    ("How do I know my booking is confirmed?",
-     "Every trip is confirmed overnight by a real person on our team, and you get a confirmation with your driver's name, "
-     "photo, vehicle and plate before pickup. If anything about your trip cannot be honoured you hear from us that night, not at the curb."),
-
-    ("How do I know what time to leave for my flight or an event?",
-     "Use the departure planner. Tell it your county and either your flight's scheduled departure or which "
-     "event you are attending, and it works backwards to the minute your car should collect you. "
-     "It uses the real drive time from your county rather than an average, applies the traffic you will "
-     "actually meet at that hour, and adds the buffer the terminal or venue needs — two hours for a "
-     "domestic flight, three for international, 45 minutes for a stadium, 30 for a Broadway curtain. "
-     "A flat \"leave two hours early\" is wrong for most of the state: it is 15 minutes from Hudson County "
-     "and up to three hours from Cape May."),
-
-    ("Does the planner account for rush hour?",
-     "Yes, and it scores the traffic during your drive rather than at your arrival time — which matters more "
-     "than it sounds. Two riders going to the same 8pm Broadway show get different pickup times: someone in "
-     "Hudson County leaves after the evening peak has eased, while someone in Morris County has to set off "
-     "inside it and needs roughly 50 percent longer on the road. Friday evenings are treated as the worst "
-     "crossing of the week, because they are."),
-
-    ("Can I track my driver and send them a message?",
-     "Yes. Once a driver is assigned you get a live map with their position and a running ETA, plus a message thread. "
-     "Messages reach your driver as a text on their phone and their replies come straight back into your browser."),
-
-    ("Are your prices really flat, with no surge?",
-     "Flat and fixed at the moment you book. We do not surge for rush hour, rain, holidays, Yankees games or Friday afternoons — "
-     "all of which are documented surcharge triggers at other operators. The number you are quoted is the number you pay."),
-
-    ("How experienced are your drivers?",
-     "Every chauffeur has a minimum of 10 years of professional driving experience, commercial licensing, "
-     "background screening and defensive-driving certification. They know terminal layouts, tunnel timing and which "
-     "side of Penn Station to be on."),
-
-    ("What happens if my flight is delayed?",
-     "Nothing you need to do. We track your flight by tail number and shift your pickup automatically. "
-     "Domestic arrivals include 60 minutes of free wait time and international arrivals include 90, measured from actual wheels-down, not your scheduled time."),
-
-    ("Do you serve New Jersey to New Jersey trips?",
-     "Not yet. Right now we are focused on doing New Jersey to New York City properly. "
-     "In-state New Jersey transfers are coming soon — join the waitlist and you will be first to know."),
+    ("Where do you operate?",
+     "Across New Jersey, New York City, Westchester, Long Island, Fairfield County and Philadelphia — including "
+     "Newark, JFK, LaGuardia, Teterboro, Morristown and Westchester airports. For anything further, ask; we "
+     "arrange long-distance journeys regularly."),
+    ("How is the price calculated?",
+     "Point-to-point journeys are priced on the time and distance involved, including tolls, congestion charges "
+     "and gratuity. Hourly service is a single all-inclusive hourly rate with a three-hour minimum. The price you "
+     "confirm is the price you pay."),
+    ("How quickly is my reservation confirmed?",
+     "Usually the moment payment clears. Before a time is offered, our system checks the calendar — the drive to "
+     "you, your journey and the drive back — so a confirmed reservation is one we can keep. Very short notice, "
+     "unusual luggage or routes we arrange personally are confirmed by us first, typically within the hour."),
+    ("Can I keep the car for the day?",
+     "Yes. Book by the hour and your chauffeur stays with you between meetings — plans can change on the day. "
+     "There is a three-hour minimum."),
+    ("Do you serve private aviation?",
+     "Yes — Teterboro, Morristown and Westchester. Give us your tail number or FBO and we will meet you there."),
+    ("What vehicle will arrive?",
+     "A Cadillac Escalade with second-row captain's chairs, a panoramic sunroof and onboard Wi-Fi. Before pickup, "
+     "your trip page shows your chauffeur's name, the vehicle and its plate."),
+    ("Can I see where my car is?",
+     "Yes. When your chauffeur sets off, your private trip page shows the vehicle's actual position and when it "
+     "was last reported. If the signal drops, the page says so rather than guessing. Location is shown only "
+     "during your journey and is deleted afterwards."),
+    ("Do you offer corporate accounts?",
+     "Yes — one point of contact, bookings for executives and guests, and consolidated monthly invoicing. "
+     "Tell us about your travel and we will set it up."),
+    ("What is your cancellation policy?",
+     "Complimentary cancellation up to 24 hours before pickup. Within 24 hours, refunds are reviewed individually, "
+     "because the time was reserved for you."),
+    ("How many guests and bags fit?",
+     "Up to six guests. Luggage space depends on seating: three guests with five large bags, four with four, "
+     "five with two, or six with one fit comfortably. Anything beyond is checked with you before payment."),
+    ("Is a child seat available?",
+     "Yes, on request at no charge. Tell us the child's age and weight when you reserve and we will confirm the fit."),
+    ("Is my information private?",
+     "Your details are used only to provide your journey. Payment is handled by Stripe — we never see or store "
+     "your card number. Trip links are private and expire."),
 ]
 
-REVIEWS = [
-    ("Daniel R.", "Managing Director, Bergen County",
-     "I take the 6am to JFK twice a month. Booked in under a minute, saw the exact price before paying, and watched the SUV come up Route 4 on the map. "
-     "The $215 was $215 — no toll line, no gratuity line, no surprise. That is the whole reason I switched.", 5),
-    ("Priya M.", "Hoboken",
-     "My flight landed two and a half hours late at 1am. I did not call anyone. The driver had already moved with the flight and texted me which door to come out of. "
-     "That is the first time ground transport has ever just worked for me.", 5),
-    ("Frank C.", "Monmouth County",
-     "Four of us to a Knicks game. Uber Black wanted $340 with surge on the way home. This was $215 each way, locked in, and the Sprinter was spotless. "
-     "The driver waited on 33rd without a single phone call.", 5),
-    ("Alicia T.", "Executive Assistant, Morris County",
-     "I book ground travel for nine executives. Being able to see the flat rate per county before I commit ends the entire back-and-forth I used to have with dispatchers. "
-     "I have not phoned a car service in four months.", 5),
-]
+# Only real, attributable reviews, published with the client's permission. None yet.
+REVIEWS = []

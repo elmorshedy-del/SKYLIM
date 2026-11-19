@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Owner · {{ brand.name }}{% endblock %}
+{% block wrapclass %}wide{% endblock %}
+{% block topright %}
+<form method="post" action="/admin/logout"><button class="btn" type="submit">Sign out</button></form>
+{% endblock %}
+
+{% macro trip_summary(b) %}
+  <div class="head" style="margin-bottom:8px">
+    <div>
+      <p class="label">{{ b.ref }} · {{ status_labels[b.status] }}</p>
+      <h2>{{ b.pickup_at|et }}</h2>
+    </div>
+    <b class="num" style="font-size:1.15rem">{{ b.amount_cents|money }}</b>
+  </div>
+  {% if b.review_flag %}<p><span class="flag">{{ b.review_flag.replace('_', ' ') }}</span></p>{% endif %}
+  <div class="row"><span>From</span><b>{{ b.pickup_address }}</b></div>
+  <div class="row"><span>To</span><b>{{ b.dropoff_address }}</b></div>
+  <div class="row"><span>Rider</span><b>{{ b.contact_name }} · <a href="tel:{{ b.contact_phone }}">{{ b.contact_phone }}</a></b></div>
+  <div class="row"><span>Party</span><b>{{ b.passengers }} riders · {{ b.large_bags }} bags{% if b.flight_number %} · {{ b.flight_number }}{% endif %}</b></div>
+  <div class="row"><span>Car blocked</span><b>{{ b.service_start|et('%-I:%M %p') }} – {{ b.service_end|et('%-I:%M %p') }}</b></div>
+  {% if b.notes %}<div class="row"><span>Notes</span><b>{{ b.notes }}</b></div>{% endif %}
+  {% if b.checklist %}<details><summary>Cabin checklist</summary><ul class="check">{% for i in b.checklist %}<li>{{ i }}</li>{% endfor %}</ul></details>{% endif %}
+{% endmacro %}
+
+{% block content %}
+{% if msg %}<div class="notice ok" role="status">{{ msg }}</div>{% endif %}
+{% if err %}<div class="notice bad" role="alert">{{ err }}</div>{% endif %}
+
+{% if not payments_live %}
+<section class="card">
+  <p class="label">Launch gates</p>
+  <p class="small muted">Online payment stays off until every gate passes in production. Requests are still collected.</p>
+  {% for name, ok, detail in gates %}
+    <div class="gate"><b>{{ '✓' if ok else '✗' }}</b><span>{{ name }}{% if not ok %} — <span class="muted">{{ detail }}</span>{% endif %}</span></div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<div class="grid2">
+  <section class="card">
+    <p class="label">Last {{ stats.days }} days</p>
+    <div class="row"><span>Prices shown</span><b class="num">{{ stats.quotes }}</b></div>
+    <div class="row"><span>Bookable</span><b class="num">{{ stats.bookable }}</b></div>
+    <div class="row"><span>Reservations</span><b class="num">{{ stats.reservations }}{% if stats.quote_to_reservation is not none %} · {{ stats.quote_to_reservation }}%{% endif %}</b></div>
+    <div class="row"><span>Paid</span><b class="num">{{ stats.paid }}{% if stats.reservation_to_paid is not none %} · {{ stats.reservation_to_paid }}%{% endif %}</b></div>
+    <div class="row"><span>Revenue (net of refunds)</span><b class="num">{{ stats.revenue_cents|money }}</b></div>
+    <div class="row"><span>Lost — calendar full</span><b class="num">{{ stats.lost_full }}</b></div>
+    <div class="row"><span>Needs arranging</span><b class="num">{{ stats.needs_arranging }}</b></div>
+    {% if stats.sources %}<details><summary>By channel</summary>
+      {% for c in stats.sources %}<div class="row"><span>{{ c.channel }}</span><b class="num">{{ c.reservations }} · {{ c.paid }} paid</b></div>{% endfor %}
+    </details>{% endif %}
+  </section>
+  <section class="card">
+    <p class="label">Availability</p>
+    <form method="post" action="/admin/instant" class="actions" style="margin-top:0">
+      <input type="hidden" name="enabled" value="{{ 'off' if instant_on else 'on' }}">
+      <span style="flex:1">Instant booking is <b>{{ 'on' if instant_on else 'paused' }}</b>.
+        {% if instant_on %}Clean trips are reserved and paid without you.{% else %}Every reservation waits for your approval.{% endif %}</span>
+      <button class="btn" type="submit">{{ 'Pause' if instant_on else 'Resume' }}</button>
+    </form>
+    <form method="post" action="/admin/blocks">
+      <div class="grid2">
+        <div><label for="bs">Block from</label><input id="bs" name="starts" type="datetime-local" required></div>
+        <div><label for="be">Until</label><input id="be" name="ends" type="datetime-local" required></div>
+      </div>
+      <label for="bn">Note (only you see it)</label><input id="bn" name="note" maxlength="120" placeholder="Personal, service appointment…">
+      <button class="btn btn-primary" type="submit" style="margin-top:12px">Block this time</button>
+    </form>
+    {% for bl in blocks %}
+      <form method="post" action="/admin/blocks/{{ bl.id }}/remove" class="row">
+        <span>{{ bl.starts|et }} – {{ bl.ends|et('%-I:%M %p') }}{% if bl.note %} · {{ bl.note }}{% endif %}</span>
+        <button class="btn" type="submit">Remove</button>
+      </form>
+    {% endfor %}
+  </section>
+</div>
+
+{% if g.attention %}
+<div class="sec"><h2>Needs your attention</h2><span class="count">{{ g.attention|length }}</span></div>
+{% for b in g.attention %}
+<section class="card">
+  {{ trip_summary(b) }}
+  <div class="actions">
+    <form method="post" action="/admin/bookings/{{ b.id }}/clear-flag"><button class="btn" type="submit">Mark resolved</button></form>
+    <a class="btn" href="{{ b.trip_url }}" target="_blank" rel="noopener">Rider's page</a>
+  </div>
+</section>
+{% endfor %}
+{% endif %}
+
+<div class="sec"><h2>New requests</h2><span class="count">{{ g.requests|length }}</span></div>
+{% for b in g.requests %}
+<section class="card">
+  {{ trip_summary(b) }}
+  <form method="post" action="/admin/bookings/{{ b.id }}/approve">
+    <details><summary>Change the price</summary>
+      <div class="grid2">
+        <div><label for="amt-{{ b.id }}">New all-in price ($)</label><input id="amt-{{ b.id }}" name="amount" inputmode="decimal" placeholder="{{ '%.2f'|format(b.amount_cents / 100) }}"></div>
+        <div><label for="why-{{ b.id }}">Reason the rider will see</label><input id="why-{{ b.id }}" name="reason" maxlength="200"></div>
+      </div>
+    </details>
+    <button class="btn btn-primary btn-full btn-xl" type="submit">Approve &amp; send payment link</button>
+  </form>
+  <form method="post" action="/admin/bookings/{{ b.id }}/decline" class="actions">
+    <input name="reason" placeholder="Reason (optional, shown to rider)" maxlength="200" style="flex:1">
+    <button class="btn btn-danger" type="submit">Decline</button>
+  </form>
+</section>
+{% else %}<p class="muted">No new requests.</p>{% endfor %}
+
+<div class="sec"><h2>Awaiting payment</h2><span class="count">{{ g.awaiting|length }}</span></div>
+{% for b in g.awaiting %}
+<section class="card">
+  {{ trip_summary(b) }}
+  <p class="small muted">Held until {{ b.hold_until|et }}</p>
+  <form method="post" action="/admin/bookings/{{ b.id }}/cancel" class="actions">
+    <input type="hidden" name="refund" value="none">
+    <button class="btn btn-danger" type="submit">Release the hold</button>
+  </form>
+</section>
+{% else %}<p class="muted">Nothing waiting on payment.</p>{% endfor %}
+
+<div class="sec"><h2>Upcoming trips</h2><span class="count">{{ g.upcoming|length }}</span></div>
+{% for b in g.upcoming %}
+<section class="card">
+  {{ trip_summary(b) }}
+  {% if b.next %}
+  <form method="post" action="/admin/bookings/{{ b.id }}/advance">
+    <input type="hidden" name="target" value="{{ b.next.value }}">
+    <button class="btn btn-primary btn-full btn-xl" type="submit">
+      {{ {'en_route':'I’m setting off — En route','arrived':'I’ve arrived','in_vehicle':'Rider is on board','completed':'Trip completed'}[b.next.value] }}
+    </button>
+  </form>
+  <p class="small muted">Tap before you drive. Never use the phone while moving.</p>
+  {% endif %}
+  <details><summary>More</summary>
+    {% if b.status == 'en_route' %}
+    <form method="post" action="/admin/bookings/{{ b.id }}/advance"><input type="hidden" name="target" value="confirmed">
+      <button class="btn" type="submit">Undo “En route”</button></form>
+    {% endif %}
+    <form method="post" action="/admin/bookings/{{ b.id }}/cancel" class="actions">
+      <input name="reason" placeholder="Reason (shown to rider)" maxlength="200" style="flex:1">
+      <select name="refund" style="max-width:190px"><option value="full">Refund in full</option><option value="none">No refund</option></select>
+      <button class="btn btn-danger" type="submit">Cancel trip</button>
+    </form>
+    <a class="btn" href="{{ b.trip_url }}" target="_blank" rel="noopener" style="margin-top:10px">Rider's page</a>
+  </details>
+</section>
+{% else %}<p class="muted">No upcoming trips.</p>{% endfor %}
+
+<div class="grid2">
+  <section class="card">
+    <p class="label">Car &amp; chauffeur shown to riders</p>
+    <form method="post" action="/admin/fleet">
+      <label for="plate">Plate</label><input id="plate" name="plate" value="{{ vehicle.plate or '' }}" maxlength="12">
+      <label for="color">Colour</label><input id="color" name="color" value="{{ vehicle.color or '' }}" maxlength="30" placeholder="Black">
+      <label for="photo">Chauffeur photo URL (https)</label><input id="photo" name="photo_url" value="{{ driver.photo_url or '' }}">
+      <button class="btn btn-primary" type="submit" style="margin-top:14px">Save</button>
+    </form>
+  </section>
+  <section class="card">
+    <p class="label">Location sources</p>
+    {% for t in trackers %}
+      <div class="row"><span>{{ t.label }}</span><b>{% if t.last_seen_at %}seen {{ t.last_seen_at|et }}{% else %}never reported{% endif %}</b></div>
+    {% else %}<p class="small muted">No tracker configured. Set TRACKER_PHONE_ID (Traccar Client) and redeploy.</p>{% endfor %}
+    <p class="small muted" style="margin-top:10px">Tracking {{ 'on' if settings.tracking_enabled else 'off' }} ·
+      positions kept {{ settings.tracking_retention_hours }} h after a trip.</p>
+  </section>
+</div>
+
+{% if outbox %}
+<div class="sec"><h2>Emails to send by hand</h2><span class="count">{{ outbox|length }}</span></div>
+{% for m in outbox %}
+<section class="card">
+  <p class="label">{{ m.kind.replace('_', ' ') }} → {{ m.to_email }}</p>
+  <b>{{ m.subject }}</b>
+  <pre class="mail">{{ m.body_text }}</pre>
+  <p class="small muted">{{ m.last_error }}</p>
+  <form method="post" action="/admin/outbox/{{ m.id }}/sent"><button class="btn" type="submit">I sent this</button></form>
+</section>
+{% endfor %}
+{% endif %}
+
+{% if inquiries %}
+<div class="sec"><h2>Custom requests</h2><span class="count">{{ inquiries|length }}</span></div>
+{% for q in inquiries %}
+<section class="card">
+  <p class="label">{{ q.kind.replace('_', ' ') }} · {{ q.created_at|et }}</p>
+  <p><b>{{ q.name or '—' }}</b> · <a href="mailto:{{ q.email }}">{{ q.email }}</a>{% if q.phone %} · <a href="tel:{{ q.phone }}">{{ q.phone }}</a>{% endif %}</p>
+  {% if q.message %}<pre class="mail">{{ q.message }}</pre>{% endif %}
+  <form method="post" action="/admin/inquiries/{{ q.id }}/handled"><button class="btn" type="submit">Handled</button></form>
+</section>
+{% endfor %}
+{% endif %}
+
+{% if g.recent %}
+<div class="sec"><h2>Recent</h2></div>
+<section class="card">
+  {% for b in g.recent %}<div class="row"><span>{{ b.ref }} · {{ b.pickup_at|et }}</span><b>{{ status_labels[b.status] }}</b></div>{% endfor %}
+</section>
+{% endif %}
+{% endblock %}

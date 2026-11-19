@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Follow the car · {{ brand.name }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endblock %}
+{% block content %}
+<div class="head">
+  <div><p class="label">Shared with you</p><h1>Follow the car</h1></div>
+  <span class="pill" id="share-status">Loading…</span>
+</div>
+<section class="card map-card" aria-label="Car location">
+  <div id="map" role="img" aria-label="Map showing the car's last reported position"></div>
+  <div class="map-meta">
+    <span id="pos-status"><span class="dot"></span> Loading…</span>
+    <span class="muted num" id="pos-age"></span>
+  </div>
+  <div class="notice" id="pos-note" hidden style="margin:0 20px 16px"></div>
+</section>
+<p class="small muted">This link shows only the car's position during the trip. It stops working when the trip ends.</p>
+<script id="trip-config" type="application/json">{{ {"mode": "share", "shareToken": share_token, "tracking": true,
+  "tiles": tiles, "attribution": attribution}|tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/trip.js" defer></script>
+{% endblock %}

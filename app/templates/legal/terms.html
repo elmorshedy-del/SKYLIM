@@ -1,0 +1,25 @@
+{% extends "legal/_layout.html" %}
+{% block policy %}
+<h2>The service</h2>
+<p>{{ brand.name }} provides pre-arranged, chauffeured trips by professional chauffeurs in premium SUVs. Trips are
+reserved in advance; we do not offer street hails or on-demand rides.</p>
+<h2>How a booking works</h2>
+<ol>
+  <li>You request a trip with a price shown on our website. A request is not a booking.</li>
+  <li>We check availability, including travel to you and back, and either approves or declines.</li>
+  <li>If approved, the time is held for you while you pay through Stripe. The trip is confirmed only when payment succeeds.</li>
+</ol>
+<h2>Price</h2>
+<p>The approved price is all-in: tolls, congestion charges, gratuity and up to {{ policy.wait_included_min }} minutes of waiting at
+pickup are included. If we change the price before approval, the reason is shown to you and you decide whether to pay.</p>
+<h2>Cancellation and refunds</h2>
+<p>{{ policy.summary }} If we have to cancel, you are refunded in full.</p>
+<h2>Passengers, luggage and child seats</h2>
+<p>Tell us the true number of riders and large bags. A child seat is available on request; we confirm it suits your
+child before you pay. We may decline or end a trip if it cannot be carried out safely or lawfully.</p>
+<h2>Conduct and safety</h2>
+<p>Seat belts are required. The chauffeur may refuse to carry anyone who endangers safety, damages the vehicle, or breaks the law.</p>
+<h2>Liability</h2>
+<p>We are not responsible for delays caused by events outside our reasonable control, such as severe weather, road closures or
+incidents. Nothing in these terms limits rights you have under applicable consumer law.</p>
+{% endblock %}

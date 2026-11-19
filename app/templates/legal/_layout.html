@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block robots %}index,follow{% endblock %}
+{% block title %}{{ title }} · {{ brand.name }}{% endblock %}
+{% block content %}
+{% if not approved %}<div class="banner">Draft — this policy is being finalised and may change before launch.</div>{% endif %}
+<article class="legal">
+  <h1>{{ title }}</h1>
+  <p class="muted small">{{ brand.name }} · policy version {{ policy.version }}</p>
+  {% block policy %}{% endblock %}
+  <p class="muted small" style="margin-top:28px">Questions: <a href="mailto:{{ brand.email }}">{{ brand.email }}</a> · {{ brand.phone_display }}</p>
+</article>
+{% endblock %}
