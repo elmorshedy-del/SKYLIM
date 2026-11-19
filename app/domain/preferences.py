@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class Mode(str, Enum):
     QUIET = "quiet"      # minimal conversation, music off, phone-call friendly
     WORK = "work"        # quiet cabin, charging ready, smooth driving for laptops
-    RELAX = "relax"      # soft music, cooler cabin, blanket offered
+    RELAX = "relax"      # soft music, cooler cabin
     FAMILY = "family"    # extra time at pickup for loading, bags first
 
 

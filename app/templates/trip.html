@@ -79,7 +79,7 @@
   <div class="row"><span>Pickup</span><b data-local-time="{{ trip.pickup_at }}">{{ trip.pickup_at }}</b></div>
   <div class="row"><span>From</span><b>{{ trip.pickup_address }}</b></div>
   <div class="row"><span>To</span><b>{{ trip.dropoff_address }}</b></div>
-  <div class="row"><span>Riders</span><b>{{ trip.passengers }} · {{ trip.large_bags }} large bag{{ '' if trip.large_bags == 1 else 's' }}</b></div>
+  <div class="row"><span>Guests</span><b>{{ trip.passengers }} · {{ trip.large_bags }} large · {{ trip.carry_ons }} carry-on</b></div>
   {% if trip.flight_number %}<div class="row"><span>Flight</span><b>{{ trip.flight_number }}</b></div>{% endif %}
   <div class="row"><span>All-in price</span><b class="num">{{ trip.amount_cents|money }}</b></div>
   <div class="actions"><a class="btn" href="/trip/{{ token }}/calendar.ics">Add to calendar</a></div>

@@ -55,6 +55,14 @@ def _stepper(name: str, label: str, value: int, lo: int, hi: int) -> str:
     </div>"""
 
 
+def luggage_guide() -> str:
+    rows = "".join(f'<li><b>{e(g)}</b><span>{e(f)}</span><small>{e(n)}</small></li>'
+                   for g, f, n in data.VEHICLE["luggage_guide"])
+    return (f'<ul class="guide-list">{rows}</ul>'
+            '<p class="guide-note">Large = checked suitcase up to about 28 in. Carry-on = cabin-size roll-aboard '
+            'or holdall. Golf bags, skis or a stroller? Add them in your notes.</p>')
+
+
 def hero() -> str:
     hours = "".join(f'<option value="{h}"{" selected" if h == 4 else ""}>{h} hours</option>'
                     for h in range(P["hourly_min_hours"], P["hourly_max_hours"] + 1))
@@ -87,7 +95,14 @@ def hero() -> str:
           <select id="q-hours">{hours}</select></label>
         <label class="field"><span class="sr">Pickup date and time (Eastern)</span>{icon('calendar', 20)}
           <input id="q-when" type="datetime-local" required></label>
-        <div class="steppers">{_stepper('q-pax', 'Guests', 1, 1, 6)}{_stepper('q-bags', 'Bags', 1, 0, 8)}</div>
+        <div class="steppers three">{_stepper('q-pax', 'Guests', 1, 1, data.VEHICLE['max_passengers'])}
+          {_stepper('q-bags', 'Large', 1, 0, 8)}{_stepper('q-carry', 'Carry-on', 1, 0, 8)}</div>
+        <div class="fit" id="q-fit" aria-live="polite">
+          <div class="fit-bar"><i id="q-fit-bar"></i></div>
+          <p class="fit-tx"><span id="q-fit-tx">Fits comfortably</span>
+            <button type="button" class="link" id="q-fit-help" aria-expanded="false" aria-controls="q-guide">What fits?</button></p>
+          <div class="guide" id="q-guide" hidden>{luggage_guide()}</div>
+        </div>
         <p class="err" id="q-err" role="alert" hidden></p>
         <button class="btn btn-dark btn-block btn-lg" type="submit" data-track="quote_submit">See price</button>
       </form>
@@ -143,6 +158,10 @@ def cabin() -> str:
         <p class="lede">Every journey is in a Cadillac Escalade, prepared to your preferences before you open
           the door — temperature, music, conversation, a quiet cabin for calls.</p>
         <ul class="features">{feats}</ul>
+        <div class="fits-card">
+          <p class="eyebrow">What fits</p>
+          {luggage_guide()}
+        </div>
       </div>
     </div>
     <div class="amenities">{''.join(groups)}</div>

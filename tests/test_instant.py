@@ -24,7 +24,7 @@ def test_clean_trip_is_reserved_and_sent_to_payment(client, gw):
 
 def test_short_notice_or_luggage_review_goes_to_approval(client):
     soon = client.post("/api/quotes", json=quote_body(pickup_local="2026-11-20T16:00")).json()
-    heavy = client.post("/api/quotes", json=quote_body(passengers=6, large_bags=4)).json()
+    heavy = client.post("/api/quotes", json=quote_body(passengers=6, large_bags=3, carry_ons=3)).json()
     assert soon["bookable"] and not soon["instant"]
     assert heavy["bookable"] and not heavy["instant"]
     r = client.post("/api/bookings", json=booking_body(soon["quote_id"])).json()

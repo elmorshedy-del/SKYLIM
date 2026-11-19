@@ -21,6 +21,7 @@ def page_config() -> str:
         "airports": [p["code"] for p in data.PLACES if p["kind"] in ("airport", "aviation")],
         "policyVersion": data.POLICY["version"],
         "maxPassengers": data.VEHICLE["max_passengers"],
+        "luggageCapacity": data.VEHICLE["luggage_capacity"],
     }, separators=(",", ":"))
 
 

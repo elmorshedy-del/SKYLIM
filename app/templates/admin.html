@@ -17,7 +17,7 @@
   <div class="row"><span>From</span><b>{{ b.pickup_address }}</b></div>
   <div class="row"><span>To</span><b>{{ b.dropoff_address }}</b></div>
   <div class="row"><span>Rider</span><b>{{ b.contact_name }} · <a href="tel:{{ b.contact_phone }}">{{ b.contact_phone }}</a></b></div>
-  <div class="row"><span>Party</span><b>{{ b.passengers }} riders · {{ b.large_bags }} bags{% if b.flight_number %} · {{ b.flight_number }}{% endif %}</b></div>
+  <div class="row"><span>Party</span><b>{{ b.passengers }} guests · {{ b.large_bags }} large · {{ b.carry_ons }} carry-on{% if b.flight_number %} · {{ b.flight_number }}{% endif %}</b></div>
   <div class="row"><span>Car blocked</span><b>{{ b.service_start|et('%-I:%M %p') }} – {{ b.service_end|et('%-I:%M %p') }}</b></div>
   {% if b.notes %}<div class="row"><span>Notes</span><b>{{ b.notes }}</b></div>{% endif %}
   {% if b.checklist %}<details><summary>Cabin checklist</summary><ul class="check">{% for i in b.checklist %}<li>{{ i }}</li>{% endfor %}</ul></details>{% endif %}

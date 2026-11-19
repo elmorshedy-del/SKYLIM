@@ -37,13 +37,13 @@ def create_quote(conn: psycopg.Connection, req: TripRequest, *, cat: Catalog, se
     destination = req.destination if req.service == "transfer" else None
     row = conn.execute(
         """INSERT INTO quotes (expires_at, service, origin, destination, hours, route_class, pickup_at,
-               passengers, large_bags, vehicle_code, amount_cents, price_status, service_start, service_end,
+               passengers, large_bags, carry_ons, vehicle_code, amount_cents, price_status, service_start, service_end,
                eligible, needs_review, decision_reasons, pricing_version, availability, session_id,
                attribution, snapshot, created_at)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
            RETURNING id""",
         (expires, req.service, req.origin, destination, req.hours, d.route_class, req.pickup_at,
-         req.passengers, req.large_bags, cat.vehicle["code"], d.amount_cents, d.price_status, d.service_start,
+         req.passengers, req.large_bags, req.carry_ons, cat.vehicle["code"], d.amount_cents, d.price_status, d.service_start,
          d.service_end, bookable, d.needs_review, reasons, cat.pricing_version, avail, session_id,
          Jsonb(attribution) if attribution else None, Jsonb(d.snapshot), now)).fetchone()
 

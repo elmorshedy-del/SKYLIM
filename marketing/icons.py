@@ -21,7 +21,6 @@ _PATHS = {
     "water": '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
     "bolt": '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
     "umbrella": '<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v7a2 2 0 0 0 4 0"/>',
-    "blanket": '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16"/>',
     "child": '<circle cx="12" cy="6" r="2.5"/><path d="M8 21v-6l-2-3 3-3h6l3 3-2 3v6"/>',
     "towel": '<path d="M6 4h12v16H6z"/><path d="M6 8h12"/>',
     "plane": '<path d="M10.5 13.5 3 11l1.5-1.5 7.5 1L16 6.5a2.1 2.1 0 0 1 3 3L15 13.5l1 7.5-1.5 1.5-2.5-7.5-3 3V21l-1.5 1-1-3.5L3 17.5 4 16h3l3-3z"/>',
@@ -42,7 +41,7 @@ def icon(name: str, size: int = 24, cls: str = "ic") -> str:
             f'stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{_PATHS[name]}</svg>')
 
 
-AMENITY_ICONS = {"water": "water", "charging": "bolt", "wifi": "wifi", "towels": "towel", "blanket": "blanket",
+AMENITY_ICONS = {"water": "water", "charging": "bolt", "wifi": "wifi", "towels": "towel",
                  "umbrella": "umbrella", "child_seat": "child", "quiet": "volume", "captains": "seat",
                  "sunroof": "sun", "climate": "thermo", "mints": "dot", "luggage": "bag", "tissues": "towel"}
 FEATURE_ICONS = {"captains": "seat", "sunroof": "sun", "wifi": "wifi"}

@@ -71,9 +71,9 @@ def test_non_bookable_quote_cannot_become_a_booking(now):
 
 
 def test_luggage_beyond_tested_capacity_needs_review(now):
-    q = quote(now, passengers=6, bags=4)
+    q = quote(now, passengers=6, bags=3, carry_ons=3)
     assert q["bookable"] and q["needs_review"]
-    b, _ = request(now, passengers=6, bags=4, pickup="2026-11-27T09:00")
+    b, _ = request(now, passengers=6, bags=3, carry_ons=3, pickup="2026-11-27T09:00")
     assert b["review_flag"] == "capacity_review"
 
 
@@ -183,3 +183,17 @@ def test_request_emails_rider_and_owner_once(now):
         rows = conn.execute("SELECT kind, to_email FROM outbox ORDER BY id").fetchall()
     assert [(r["kind"], r["to_email"]) for r in rows] == [
         ("request_received", "jordan@example.com"), ("owner_new_request", "owner@test.example")]
+
+
+def test_published_luggage_guide_matches_capacity_rule():
+    """Every line of the 'what fits' guide shown to clients must be accepted without review."""
+    import re
+
+    from app.domain.pricing import capacity_check
+    vehicle = get_catalog().vehicle
+    for guests_label, fits, _ in vehicle["luggage_guide"]:
+        guests = int(re.search(r"\d+", guests_label).group())
+        large, carry = (int(n) for n in re.findall(r"\d+", fits))
+        assert capacity_check(vehicle, guests, large, carry) is None, (guests_label, fits)
+        assert capacity_check(vehicle, guests, large + 1, carry) == "capacity_review", (guests_label, fits)
+    assert capacity_check(vehicle, 7, 0, 0) == "over_capacity"

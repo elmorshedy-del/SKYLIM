@@ -111,8 +111,31 @@
     $$('.step-b', s).forEach(function (b) {
       b.addEventListener('click', function () {
         out.textContent = Math.max(+out.dataset.min, Math.min(+out.dataset.max, +out.textContent + +b.dataset.step));
+        paintFit();
       });
     });
+  });
+
+  /* Live luggage fit: large bag = 2 units, carry-on = 1; space grows as fewer seats are needed. */
+  function capacityFor(guests) {
+    var caps = (PAGE.luggageCapacity || []).slice().sort(function (a, b) { return a[0] - b[0]; });
+    for (var i = 0; i < caps.length; i++) if (guests <= caps[i][0]) return caps[i][1];
+    return 0;
+  }
+  function paintFit() {
+    var bar = $('#q-fit-bar'); if (!bar) return;
+    var guests = +$('#q-pax').textContent, used = 2 * +$('#q-bags').textContent + +$('#q-carry').textContent;
+    var cap = capacityFor(guests), pct = cap ? Math.min(100, Math.round(100 * used / cap)) : 100, ok = used <= cap;
+    bar.style.width = Math.max(4, pct) + '%';
+    $('#q-fit').classList.toggle('snug', !ok);
+    $('#q-fit-tx').textContent = ok ? (pct > 85 ? 'Fits — a full load' : 'Fits comfortably')
+      : 'More than our guide — we will confirm with you before payment';
+  }
+  paintFit();
+  var fitHelp = $('#q-fit-help');
+  if (fitHelp) fitHelp.addEventListener('click', function () {
+    var g = $('#q-guide'); g.hidden = !g.hidden; fitHelp.setAttribute('aria-expanded', !g.hidden);
+    if (!g.hidden) track('luggage_guide_opened');
   });
 
   /* ======================================================== service tabs */
@@ -139,7 +162,7 @@
     var body = { service: S.service, origin: from, destination: S.service === 'transfer' ? to : null,
       hours: S.service === 'hourly' ? +$('#q-hours').value : null, pickup_local: when.value,
       passengers: +$('#q-pax').textContent, large_bags: +$('#q-bags').textContent,
-      session_id: session.id, attribution: attribution() };
+      carry_ons: +$('#q-carry').textContent, session_id: session.id, attribution: attribution() };
     api('POST', '/api/quotes', body).then(function (q) {
       S.quote = q; S.trip = body;
       renderQuote(q);
@@ -266,7 +289,7 @@
     var q = S.quote, pr = prefs(), rows = [['When', fmtWhen(q.pickup_at)], ['From', field('pickup_address').value]];
     if (S.trip.service === 'transfer') rows.push(['To', field('dropoff_address').value]);
     else rows.push(['Duration', S.trip.hours + ' hours']);
-    rows.push(['Guests', S.trip.passengers + ' · ' + S.trip.large_bags + ' bags'],
+    rows.push(['Guests', S.trip.passengers + ' · ' + S.trip.large_bags + ' large · ' + S.trip.carry_ons + ' carry-on'],
       ['Cabin', pr.mode + ' · ' + pr.temperature + (pr.child_seat !== 'none' ? ' · child seat' : '')],
       ['Contact', field('name').value], ['Total', money(q.amount_cents) + ' all-inclusive']);
     var dl = $('#book-review'); dl.innerHTML = '';
@@ -332,7 +355,7 @@
   function prefillBespoke() {
     var f = $('#bespoke'); if (!f || !S.quote) return;
     f.elements.message.value = routeLabel(S.quote) + '\n' + fmtWhen(S.quote.pickup_at) + '\nGuests: ' + S.trip.passengers +
-      ', bags: ' + S.trip.large_bags;
+      ', large bags: ' + S.trip.large_bags + ', carry-ons: ' + S.trip.carry_ons;
     f.elements.topic.selectedIndex = 3;
   }
   var bf = $('#bespoke');

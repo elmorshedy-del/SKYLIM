@@ -12,7 +12,7 @@ from .icons import icon
 
 MODES = [("quiet", "Quiet", "Calls and focus"),
          ("work", "Work", "Cool, steady, chargers out"),
-         ("relax", "Relax", "Soft music, blanket"),
+         ("relax", "Relax", "Soft music, cooler cabin"),
          ("family", "Family", "Time for bags and little ones")]
 
 

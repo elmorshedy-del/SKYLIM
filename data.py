@@ -24,6 +24,7 @@ BRAND = {
     "email": "ride@meridianblackcar.com",     # PLACEHOLDER — the real reservations inbox
     "base_town": "Essex County, New Jersey",  # PLACEHOLDER — public town shown as a service-area business
     "authority_display": "",                  # e.g. "NJ limousine licence #… · USDOT #…" — only once issued
+    "review_url": "",                         # Google Business Profile "Ask for reviews" link (g.page/r/...)
     "placeholder": True,                      # set False once every field above is real
 }
 
@@ -60,10 +61,18 @@ VEHICLE = {
                                   "card beside your seat."),
     ],
     "child_seats": [{"type": "TO CONFIRM (e.g. convertible / booster)", "count": 1}],
-    # Conservative luggage limits for a standard-wheelbase Escalade until a real loading test is
-    # done: (max passengers, max large checked bags). Anything beyond is reviewed, not auto-accepted.
-    "luggage_rules": [(3, 5), (4, 4), (5, 2), (6, 1)],
-    "capacity_tested": False,
+    # What fits, in luggage "units": a large checked bag = 2, a carry-on = 1.
+    # Basis (standard wheelbase): 25.5 cu ft behind the third row — Edmunds' load test of the same GM
+    # platform with that exact volume fit two 26-inch checked bags, three carry-on roll-aboards and a
+    # duffel (8 units). Third row folded: 72.6 cu ft. If the car is an ESV (41.5 / 94.1 cu ft), use
+    # [(3, 22), (4, 18), (6, 13)]. Anything beyond capacity is confirmed with the client, never refused.
+    "luggage_capacity": [(3, 16), (4, 12), (6, 8)],      # (up to N guests, units available)
+    "luggage_guide": [
+        ("Up to 6 guests", "2 large + 3 carry-ons", "All three rows in use"),
+        ("4 guests", "4 large + 4 carry-ons", "Part of the third row folded"),
+        ("Up to 3 guests", "6 large + 4 carry-ons", "Third row folded"),
+    ],
+    "capacity_tested": False,                 # set True after a real loading test confirms the guide
 }
 
 DRIVER = {"code": "ahmed", "display_name": "Ahmed"}     # first chauffeur; name shown to confirmed riders
@@ -77,7 +86,6 @@ AMENITIES = {
     "captains": {"group": "Comfort", "label": "Second-row captain's chairs", "available": True},
     "sunroof":  {"group": "Comfort", "label": "Panoramic sunroof", "available": True},
     "climate":  {"group": "Comfort", "label": "Cabin set to your temperature before pickup", "available": True},
-    "blanket":  {"group": "Comfort", "label": "Fleece blanket", "available": True},
     "water":    {"group": "Refreshment", "label": "Chilled still water", "available": True},
     "mints":    {"group": "Refreshment", "label": "Mints", "available": True},
     "towels":   {"group": "Refreshment", "label": "Unscented refresh towels", "available": True},
@@ -326,9 +334,10 @@ FAQS = [
     ("What is your cancellation policy?",
      "Complimentary cancellation up to 24 hours before pickup. Within 24 hours, refunds are reviewed individually, "
      "because the time was reserved for you."),
-    ("How many guests and bags fit?",
-     "Up to six guests. Luggage space depends on seating: three guests with five large bags, four with four, "
-     "five with two, or six with one fit comfortably. Anything beyond is checked with you before payment."),
+    ("How much luggage fits?",
+     "Up to six guests. With every seat in use there is room for 2 large checked bags and 3 carry-ons. With four "
+     "guests, part of the third row folds for 4 large bags and 4 carry-ons; with up to three guests, the third row "
+     "folds for 6 large bags and 4 carry-ons. The booking form shows you instantly whether your luggage fits."),
     ("Is a child seat available?",
      "Yes, on request at no charge. Tell us the child's age and weight when you reserve and we will confirm the fit."),
     ("Is my information private?",

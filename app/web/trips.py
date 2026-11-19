@@ -56,6 +56,7 @@ def _view(conn, b: dict, now: datetime) -> dict:
         "ref": b["ref"], "status": status.value, "status_label": LABELS[status],
         "pickup_at": b["pickup_at"].isoformat(), "pickup_address": b["pickup_address"],
         "dropoff_address": b["dropoff_address"], "passengers": b["passengers"], "large_bags": b["large_bags"],
+        "carry_ons": b["carry_ons"],
         "flight_number": b["flight_number"], "amount_cents": b["amount_cents"],
         "price_adjust_reason": b["price_adjust_reason"],
         "timeline": [{"status": t.value, "label": LABELS[t],

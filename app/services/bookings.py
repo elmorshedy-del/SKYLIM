@@ -14,6 +14,8 @@ from typing import Optional
 import psycopg
 from psycopg.types.json import Jsonb
 
+import data
+
 from ..config import Settings
 from ..db import DRIVER_ID, VEHICLE_ID
 from ..domain.catalog import Catalog
@@ -131,12 +133,12 @@ def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDe
     booking = conn.execute(
         """INSERT INTO bookings (id, ref, quote_id, customer_id, contact_name, contact_email, contact_phone,
                status, service, hours, pickup_at, service_start, service_end, pickup_address, dropoff_address,
-               flight_number, passengers, large_bags, notes, preferences, remember_preferences,
+               flight_number, passengers, large_bags, carry_ons, notes, preferences, remember_preferences,
                policy_version, amount_cents, access_token_hash, review_flag, source, attribution, instant,
                created_at, updated_at)
            VALUES (%(id)s, %(ref)s, %(quote)s, %(customer)s, %(name)s, %(email)s, %(phone)s, 'requested',
                %(service)s, %(hours)s, %(pickup_at)s, %(start)s, %(end)s, %(pickup)s, %(drop)s, %(flight)s,
-               %(pax)s, %(bags)s,
+               %(pax)s, %(bags)s, %(carry)s,
                %(notes)s, %(prefs)s, %(remember)s, %(policy)s, %(amount)s, %(token_hash)s, %(flag)s,
                %(source)s, %(attribution)s, %(instant)s, %(now)s, %(now)s)
            RETURNING *""",
@@ -144,7 +146,7 @@ def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDe
          "customer": customer["id"], "name": contact.name, "email": email, "phone": contact.phone,
          "service": q["service"], "hours": q["hours"], "pickup_at": q["pickup_at"], "start": q["service_start"],
          "end": q["service_end"], "pickup": trip.pickup_address, "drop": trip.dropoff_address,
-         "flight": trip.flight_number, "pax": q["passengers"], "bags": q["large_bags"], "notes": trip.notes,
+         "flight": trip.flight_number, "pax": q["passengers"], "bags": q["large_bags"], "carry": q["carry_ons"], "notes": trip.notes,
          "prefs": Jsonb(preferences.model_dump()), "remember": remember, "policy": cat.policy["version"],
          "amount": q["amount_cents"], "flag": _review_flag(q, preferences),
          "source": (source or "")[:120] or None, "attribution": Jsonb(attribution) if attribution else None,
@@ -283,6 +285,8 @@ def advance(conn: psycopg.Connection, booking_id, target: Status, *, now: dateti
                               driver_name=(d or {}).get("display_name"))
     if target == Status.COMPLETED:
         release_reservation(conn, b["id"], now, "completed")
+        if data.BRAND.get("review_url"):     # reviews drive local ranking and conversion (see docs/SEO-PLAN.md)
+            notifications.enqueue(conn, "review_request", row)
         if retention_hours <= 0:
             conn.execute("DELETE FROM positions WHERE booking_id = %s", (b["id"],))
     return row

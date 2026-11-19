@@ -64,6 +64,7 @@ class QuoteIn(Strict):
     pickup_local: str = Field(max_length=20, description="New York wall-clock time, YYYY-MM-DDTHH:MM")
     passengers: int = Field(ge=1, le=20)
     large_bags: int = Field(ge=0, le=20)
+    carry_ons: int = Field(default=0, ge=0, le=20)
     session_id: Optional[str] = Field(default=None, max_length=64)
     attribution: Optional[dict] = None
 
@@ -141,7 +142,7 @@ def public_config() -> dict:
         "policy": {"version": cat.policy["version"], "summary": cat.policy["summary"],
                    "free_cancel_hours": cat.policy["free_cancel_hours"]},
         "vehicle": {"name": cat.vehicle["class_name"], "max_passengers": cat.vehicle["max_passengers"],
-                    "luggage_rules": cat.vehicle["luggage_rules"]},
+                    "luggage_capacity": cat.vehicle["luggage_capacity"], "luggage_guide": cat.vehicle["luggage_guide"]},
         "amenities": {k: v["label"] for k, v in cat.amenities.items() if v["available"]},
         "places": {k: {"name": pl.name, "short": pl.short, "group": pl.group, "airport": pl.is_airport}
                    for k, pl in cat.places.items()},
@@ -156,7 +157,7 @@ def create_quote(body: QuoteIn, now: datetime = Depends(clock)) -> dict:
                           destination=body.destination if body.service == "transfer" else None,
                           hours=body.hours if body.service == "hourly" else None,
                           pickup_at=parse_local_pickup(body.pickup_local), passengers=body.passengers,
-                          large_bags=body.large_bags)
+                          large_bags=body.large_bags, carry_ons=body.carry_ons)
         with tx() as conn:
             return quotes.create_quote(conn, req, cat=get_catalog(), settings=get_settings(), now=now,
                                        session_id=body.session_id, attribution=_attribution(body.attribution))

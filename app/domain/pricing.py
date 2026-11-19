@@ -25,7 +25,8 @@ REASONS = {
     "too_soon": "We ask for at least {notice_hours} hours' notice so every detail can be confirmed.",
     "too_far": "We accept reservations up to {max_days} days ahead.",
     "over_capacity": "The Escalade seats up to {max_pax} guests.",
-    "capacity_review": "With that much luggage we will confirm the arrangement with you before payment.",
+    "capacity_review": "That is more luggage than our guide shows for this many guests, so we will confirm "
+                       "the arrangement with you before payment.",
     "hours_range": "Hourly reservations run from {min_hours} to {max_hours} hours.",
     "estimate": "Estimated — confirmed before any payment.",
 }
@@ -45,6 +46,7 @@ class TripRequest:
     passengers: int
     large_bags: int
     hours: Optional[float] = None
+    carry_ons: int = 0
 
 
 @dataclass(frozen=True)
@@ -107,13 +109,27 @@ def route_class(cat: Catalog, origin: str, destination: Optional[str]) -> str:
     return "nj_intrastate" if a == "NJ" else "other_intrastate"
 
 
-def capacity_check(vehicle: dict, passengers: int, large_bags: int) -> Optional[str]:
+LUGGAGE_UNITS = {"large": 2, "carry_on": 1}
+
+
+def luggage_units(large_bags: int, carry_ons: int) -> int:
+    return large_bags * LUGGAGE_UNITS["large"] + carry_ons * LUGGAGE_UNITS["carry_on"]
+
+
+def luggage_capacity(vehicle: dict, passengers: int) -> int:
+    """Luggage units available with this many guests seated (fewer guests -> third row folds)."""
+    for max_guests, units in sorted(vehicle["luggage_capacity"]):
+        if passengers <= max_guests:
+            return units
+    return 0
+
+
+def capacity_check(vehicle: dict, passengers: int, large_bags: int, carry_ons: int = 0) -> Optional[str]:
+    """None if it fits; 'capacity_review' if snug (confirmed with the client); 'over_capacity'."""
     if passengers < 1 or passengers > vehicle["max_passengers"]:
         return "over_capacity"
-    for max_pax, max_bags in sorted(vehicle["luggage_rules"]):
-        if passengers <= max_pax:
-            return None if large_bags <= max_bags else "capacity_review"
-    return "capacity_review"
+    fits = luggage_units(large_bags, carry_ons) <= luggage_capacity(vehicle, passengers)
+    return None if fits else "capacity_review"
 
 
 # ----------------------------------------------------------------- window
@@ -172,7 +188,7 @@ def decide_quote(cat: Catalog, req: TripRequest, *, now: datetime, min_notice_mi
         reasons.append("too_soon")
     if req.pickup_at > now + timedelta(days=max_advance_days):
         reasons.append("too_far")
-    cap = capacity_check(cat.vehicle, req.passengers, req.large_bags)
+    cap = capacity_check(cat.vehicle, req.passengers, req.large_bags, req.carry_ons)
     if cap:
         reasons.append(cap)
 
@@ -192,7 +208,8 @@ def decide_quote(cat: Catalog, req: TripRequest, *, now: datetime, min_notice_mi
     snapshot = {
         "service": req.service, "origin": req.origin, "destination": destination, "hours": req.hours,
         "pickup_at": req.pickup_at.isoformat(), "passengers": req.passengers, "large_bags": req.large_bags,
-        "amount_cents": amount, "list_cents": list_cents, "offer": offer, "pricing_version": cat.pricing_version, "pricing_approved": cat.pricing_approved,
+        "carry_ons": req.carry_ons, "amount_cents": amount, "list_cents": list_cents, "offer": offer,
+        "pricing_version": cat.pricing_version, "pricing_approved": cat.pricing_approved,
         "loaded_minutes": loaded, "committed_minutes": committed, "route_class": rclass,
         "traffic_factor": traffic_factor(req.pickup_at), "home_base": cat.home_base,
         "policy_version": cat.policy["version"],

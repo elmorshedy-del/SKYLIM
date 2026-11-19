@@ -1,0 +1,10 @@
+# Runtime (pinned; upgrade deliberately and re-run the test suite)
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+psycopg[binary]==3.3.9
+psycopg-pool==3.3.3
+pydantic==2.13.5
+stripe==17.1.0
+jinja2==3.1.6
+httpx==0.28.1
+python-multipart==0.0.32

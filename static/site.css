@@ -314,3 +314,27 @@ body.sheet-open{overflow:hidden}
 @media (max-width:420px){.two{grid-template-columns:minmax(0,1fr)}}
 .pane-lede{color:var(--g600);margin:4px 0 0}
 .secure{display:flex;align-items:center;gap:6px;margin-top:10px}
+
+/* luggage fit */
+.steppers.three{grid-template-columns:1fr 1fr}
+.steppers.three .stepper:first-child{grid-column:1/-1}
+.stepper-l{white-space:nowrap}
+@media (max-width:520px){.steppers.three{grid-template-columns:minmax(0,1fr)}}
+.fit{margin-top:2px}
+.fit-bar{height:6px;border-radius:999px;background:var(--g100);overflow:hidden}
+.fit-bar i{display:block;height:100%;width:30%;background:var(--positive);border-radius:999px;transition:width .25s,background .25s}
+.fit.snug .fit-bar i{background:var(--warning)}
+.fit-tx{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:.85rem;color:var(--g600);margin:6px 0 0}
+.fit.snug .fit-tx span{color:#7a5a12}
+.link{border:0;background:none;font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;
+  padding:4px 0;min-height:32px;color:#000;white-space:nowrap}
+.guide{background:var(--g50);border-radius:var(--r-sm);padding:12px 14px;margin-top:8px}
+.guide-list{display:grid;gap:8px}
+.guide-list li{display:grid;grid-template-columns:auto 1fr;gap:0 12px;font-size:.88rem}
+.guide-list b{font-weight:600}
+.guide-list span{text-align:right;font-weight:600}
+.guide-list small{grid-column:1/-1;color:var(--g500);font-size:.78rem}
+.guide-note{font-size:.78rem;color:var(--g600);margin:10px 0 0}
+.fits-card{margin-top:8px;background:var(--g900);border:1px solid var(--g800);border-radius:var(--r-lg);padding:20px 22px}
+.fits-card .guide-list li{color:var(--g200)}
+.fits-card .guide-list small,.fits-card .guide-note{color:var(--g500)}

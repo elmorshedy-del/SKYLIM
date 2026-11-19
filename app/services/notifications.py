@@ -49,7 +49,7 @@ def _summary(b: dict) -> str:
             f"Pickup:    {local_time(b['pickup_at'])}\n"
             f"From:      {b['pickup_address']}\n"
             f"To:        {b['dropoff_address']}\n"
-            f"Riders:    {b['passengers']} · large bags: {b['large_bags']}\n"
+            f"Guests:    {b['passengers']} · {b['large_bags']} large bags · {b.get('carry_ons', 0)} carry-ons\n"
             f"Price:     {money(b['amount_cents'])} all-in")
 
 
@@ -95,6 +95,11 @@ def _compose(kind: str, b: dict, extra: dict) -> tuple[str, str, str]:
             f"Hi {first},\n\n{extra.get('driver_name') or 'Your chauffeur'} has arrived at {b['pickup_address']}.\n"
             f"{extra.get('vehicle_line', '')}\nYour price includes {data.POLICY['wait_included_min']} minutes "
             f"of waiting.\n\nTrip page: {url}" + _signature())
+    if kind == "review_request":
+        return rider, "How was your journey?", (
+            f"Hi {first},\n\nThank you for travelling with us. If everything was as it should be, a short Google "
+            f"review helps others find us — it takes a minute:\n{data.BRAND['review_url']}\n\n"
+            f"If anything fell short, simply reply to this email. It comes straight to us." + _signature())
     if kind == "declined":
         return rider, f"About your request {b['ref']}", (
             f"Hi {first},\n\nWe're sorry — we can't take this trip"
