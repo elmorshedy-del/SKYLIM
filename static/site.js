@@ -18,7 +18,15 @@
     set: function (k, v, ses) { try { (ses ? sessionStorage : localStorage).setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
   window.dataLayer = window.dataLayer || [];
-  function track(event, params) { var p = params || {}; p.event = event; window.dataLayer.push(p); }
+  function track(event, params) {
+    var p = params || {}; p.event = event; window.dataLayer.push(p);
+    // Direct GA4 (no Tag Manager) only understands gtag() calls, so mirror the event.
+    if (window.__mrDirectGA && typeof window.gtag === 'function') {
+      var g = {}; for (var k in p) { if (k !== 'event') g[k] = k === 'ecommerce' && p[k] ? undefined : p[k]; }
+      if (p.ecommerce) { g.currency = p.ecommerce.currency; g.value = p.ecommerce.value; g.items = p.ecommerce.items; }
+      window.gtag('event', event, g);
+    }
+  }
   function trackEcommerce(event, q, extra) {
     window.dataLayer.push({ ecommerce: null });
     var item = { item_id: q.route.service === 'hourly' ? 'hourly-' + q.route.hours + 'h' : S.trip.origin + '-' + S.trip.destination,
@@ -325,7 +333,7 @@
     var f = $('#bespoke'); if (!f || !S.quote) return;
     f.elements.message.value = routeLabel(S.quote) + '\n' + fmtWhen(S.quote.pickup_at) + '\nGuests: ' + S.trip.passengers +
       ', bags: ' + S.trip.large_bags;
-    f.elements.kind.selectedIndex = 3;
+    f.elements.topic.selectedIndex = 3;
   }
   var bf = $('#bespoke');
   if (bf) bf.addEventListener('submit', function (e) {
@@ -335,11 +343,12 @@
       out.textContent = 'Please add your email and a few details.'; return;
     }
     var btn = $('button', bf); btn.disabled = true;
-    api('POST', '/api/inquiries', { kind: bf.elements.kind.value, email: email, name: bf.elements.name.value.trim() || null,
-      phone: bf.elements.phone.value.trim() || null, message: bf.elements.message.value.trim(),
+    api('POST', '/api/inquiries', { kind: 'custom_quote', email: email, name: bf.elements.name.value.trim() || null,
+      phone: bf.elements.phone.value.trim() || null,
+      message: bf.elements.topic.value + '\n\n' + bf.elements.message.value.trim(),
       source: attribution().utm_source || null, website: bf.elements.website.value })
       .then(function () { bf.reset(); out.textContent = 'Thank you. We will be in touch personally.';
-        track('generate_lead', { lead_type: bf.elements.kind.value, currency: 'USD', value: 0 }); })
+        track('generate_lead', { lead_type: 'bespoke', currency: 'USD', value: 0 }); })
       .catch(function (err) { out.textContent = err.message; })
       .then(function () { btn.disabled = false; });
   });

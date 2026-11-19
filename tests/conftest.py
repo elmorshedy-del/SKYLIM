@@ -47,8 +47,8 @@ get_settings.cache_clear()
 
 NOW = datetime(2026, 11, 20, 15, 0, tzinfo=timezone.utc)   # Fri Nov 20 2026, 10:00 ET
 
-DATA_TABLES = ["positions", "outbox", "stripe_events", "payments", "reservations", "booking_events",
-               "bookings", "quotes", "customers", "inquiries"]
+DATA_TABLES = ["positions", "outbox", "analytics_outbox", "stripe_events", "payments", "reservations",
+               "booking_events", "bookings", "quotes", "customers", "inquiries"]
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -66,6 +66,7 @@ def _clean():
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
         conn.execute("TRUNCATE " + ", ".join(DATA_TABLES) + " RESTART IDENTITY CASCADE")
         conn.execute("UPDATE vehicles SET plate = NULL, color = NULL")
+        conn.execute("UPDATE flags SET enabled = true WHERE key = 'instant_booking'")
     yield
 
 

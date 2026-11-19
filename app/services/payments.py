@@ -28,7 +28,7 @@ from ..db import tx
 from ..domain.status import Status
 from ..errors import Conflict, Forbidden, Unavailable
 from ..security import trip_token
-from . import bookings, notifications
+from . import analytics, bookings, notifications
 
 log = logging.getLogger("meridian.payments")
 STRIPE_MIN_SESSION = timedelta(minutes=31)      # Stripe minimum is 30 minutes; keep a margin
@@ -260,6 +260,7 @@ def _charge_refunded(conn, charge: dict, now: datetime) -> str:
               "refund issued while trip still active — cancel it in admin if the trip is off", now)
     notifications.enqueue(conn, "refunded", b, dedupe=f"refunded:{pay['id']}:{refunded}",
                           refund_cents=refunded - pay["refunded_cents"])
+    analytics.enqueue_refund(conn, b, pay["id"], refunded, refunded - pay["refunded_cents"])
     return "refund_recorded"
 
 

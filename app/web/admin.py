@@ -13,7 +13,7 @@ from typing import Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from ..config import LOCAL_TZ, get_settings, launch_gates, payments_live
 from ..db import DRIVER_ID, VEHICLE_ID, tx
@@ -228,3 +228,24 @@ def remove_block(block_id: uuid.UUID, now: datetime = Depends(clock)):
         conn.execute("""UPDATE reservations SET released_at = %s, release_reason = 'unblocked'
                         WHERE id = %s AND kind = 'block'""", (now, block_id))
     return _back("Block removed.")
+
+
+@router.get("/exports/google-ads-conversions.csv", dependencies=[Depends(require_admin)])
+def google_ads_conversions(now: datetime = Depends(clock)):
+    """Paid reservations that came from a Google Ads click, in Google's offline-conversion
+    upload format (Google Ads > Goals > Conversions > Uploads). Conversion name must match
+    the offline conversion action created in Google Ads."""
+    with tx() as conn:
+        rows = conn.execute(
+            """SELECT b.attribution->>'gclid' AS gclid, p.paid_at, p.amount_cents - p.refunded_cents AS cents
+               FROM bookings b JOIN payments p ON p.booking_id = b.id
+               WHERE p.status IN ('paid', 'partially_refunded') AND b.attribution ? 'gclid'
+                 AND p.paid_at > %s ORDER BY p.paid_at""", (now - timedelta(days=89),)).fetchall()
+    lines = ["Parameters:TimeZone=America/New_York",
+             "Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency"]
+    for r in rows:
+        when = r["paid_at"].astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M:%S")
+        lines.append(f"{r['gclid']},Paid reservation,{when},{r['cents'] / 100:.2f},USD")
+    return Response("\n".join(lines) + "\n", media_type="text/csv",
+                    headers={"Content-Disposition": 'attachment; filename="google-ads-conversions.csv"',
+                             **NO_STORE})

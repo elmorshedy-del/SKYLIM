@@ -78,6 +78,11 @@ class Settings:
     email_from: str
     email_allowlist: tuple[str, ...]  # staging: only these addresses ever receive mail
 
+    # analytics (all optional; nothing loads unless set)
+    gtm_container_id: str             # GTM-XXXXXXX — loads Google Tag Manager on the marketing site
+    ga4_measurement_id: str           # G-XXXXXXX — direct GA4 (if no GTM) and server-side Measurement Protocol
+    ga4_api_secret: str               # Measurement Protocol secret for server-side purchase/refund events
+
     legal_pages_approved: bool
     trust_proxy_headers: bool
     extra: dict = field(default_factory=dict)
@@ -130,6 +135,9 @@ def get_settings() -> Settings:
         postmark_token=_str("POSTMARK_SERVER_TOKEN"),
         email_from=_str("EMAIL_FROM"),
         email_allowlist=_list("EMAIL_ALLOWLIST"),
+        gtm_container_id=_str("GTM_CONTAINER_ID"),
+        ga4_measurement_id=_str("GA4_MEASUREMENT_ID"),
+        ga4_api_secret=_str("GA4_API_SECRET"),
         legal_pages_approved=_bool("LEGAL_PAGES_APPROVED", False),
         trust_proxy_headers=_bool("TRUST_PROXY_HEADERS", True),
     )

@@ -302,7 +302,7 @@ body.sheet-open{overflow:hidden}
 .custom-h{font-size:1.35rem;margin-bottom:4px}
 .custom select{font:inherit;font-size:1rem;color:#fff;background:var(--g800);border:2px solid transparent;border-radius:var(--r-sm);
   padding:12px 14px;min-height:48px;width:100%;appearance:none;-webkit-appearance:none}
-#corporate .features .ic{color:var(--champagne)}
+#bespoke-sec .features .ic{color:var(--champagne)}
 
 /* closing */
 .band-cta{background:var(--g50)}

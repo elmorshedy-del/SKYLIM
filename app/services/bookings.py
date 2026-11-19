@@ -21,7 +21,7 @@ from ..domain.preferences import JourneyPreferences
 from ..domain.status import ACTIVE_TRIP, Status, assert_transition
 from ..errors import Conflict, Invalid, NotFound
 from ..security import booking_ref, token_hash, trip_token
-from . import notifications
+from . import analytics, notifications
 
 MIN_PAYMENT_WINDOW = timedelta(minutes=35)   # Stripe Checkout sessions must live >= 30 minutes
 
@@ -248,6 +248,7 @@ def confirm_paid(conn: psycopg.Connection, b: dict, *, paid_cents: int, now: dat
         conn.execute("UPDATE customers SET saved_preferences = %s, updated_at = %s WHERE id = %s",
                      (Jsonb(row["preferences"]), now, row["customer_id"]))
     notifications.enqueue(conn, "confirmed", row, paid_cents=paid_cents)
+    analytics.enqueue_purchase(conn, row, paid_cents)
     return row
 
 

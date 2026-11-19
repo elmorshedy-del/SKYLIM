@@ -2,9 +2,14 @@
 from __future__ import annotations
 
 import json
+import re
+from pathlib import Path
 
 import data
 from . import booking, sections, seo
+
+STATIC = Path(__file__).resolve().parent.parent / "static"
+ANALYTICS_SLOT = "<!--ANALYTICS-->"   # replaced at serve time (app/web/site.py) from environment settings
 
 ASSET_VERSION = seo.TODAY.replace("-", "")   # cache-busts site.css / site.js on each build
 
@@ -19,12 +24,19 @@ def page_config() -> str:
     }, separators=(",", ":"))
 
 
+def inline_css() -> str:
+    """Tokens + site styles inlined: no render-blocking stylesheet requests on first paint."""
+    css = (STATIC / "tokens.css").read_text() + (STATIC / "site.css").read_text()
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)                 # comments
+    return re.sub(r"\s*\n\s*", "", css)                             # line breaks and indentation
+
+
 def render() -> str:
     body = "".join([
         sections.header(),
         '<main id="main">',
         sections.hero(), sections.services(), sections.cabin(), sections.standard(), sections.how(),
-        sections.pricing(), sections.realtime(), sections.corporate(), sections.faq(), sections.closing(),
+        sections.pricing(), sections.realtime(), sections.bespoke(), sections.faq(), sections.closing(),
         "</main>",
         sections.footer(),
         booking.dialog(),
@@ -36,12 +48,10 @@ def render() -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 {seo.head_meta()}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/tokens.css?v={ASSET_VERSION}">
-<link rel="stylesheet" href="/static/site.css?v={ASSET_VERSION}">
+<link rel="preload" href="/static/fonts/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>{inline_css()}</style>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+{ANALYTICS_SLOT}
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>

@@ -98,6 +98,7 @@ POLICY = {
 
 # ---------------------------------------------------------------- services
 # Service lines shown on the site. "booking" says how each is reserved online.
+# Later phase (not offered yet): ("corporate", "Corporate accounts", "...", "inquiry").
 SERVICES = [
     ("airport", "Airports & private aviation",
      "Newark, JFK and LaGuardia — and Teterboro, Morristown and Westchester for private flights. "
@@ -110,9 +111,6 @@ SERVICES = [
      "transfer"),
     ("events", "Evenings & occasions",
      "Galas, Broadway, the Garden, weddings. Dropped at the door, collected when you are ready.", "hourly"),
-    ("corporate", "Corporate accounts",
-     "Executive travel and client hosting with one point of contact and consolidated monthly invoicing.",
-     "inquiry"),
     ("long", "Long distance",
      "Philadelphia, the Hamptons, the Shore and Connecticut — door to door, in comfort.", "transfer"),
 ]
@@ -325,9 +323,6 @@ FAQS = [
      "Yes. When your chauffeur sets off, your private trip page shows the vehicle's actual position and when it "
      "was last reported. If the signal drops, the page says so rather than guessing. Location is shown only "
      "during your journey and is deleted afterwards."),
-    ("Do you offer corporate accounts?",
-     "Yes — one point of contact, bookings for executives and guests, and consolidated monthly invoicing. "
-     "Tell us about your travel and we will set it up."),
     ("What is your cancellation policy?",
      "Complimentary cancellation up to 24 hours before pickup. Within 24 hours, refunds are reviewed individually, "
      "because the time was reserved for you."),

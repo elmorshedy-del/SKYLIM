@@ -15,6 +15,7 @@ import os
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -22,18 +23,20 @@ from . import db
 from .config import get_settings
 from .domain.status import TransitionError
 from .errors import AppError
-from .services import bookings, notifications, tracking
+from .services import analytics, bookings, notifications, tracking
 from .web import admin, integrations, public_api, site, trips
 
 log = logging.getLogger("meridian")
 SWEEP_SECONDS = 60
 
+GOOGLE_TAGS = "https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com"
 CSP = ("default-src 'self'; "
-       "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+       f"script-src 'self' 'unsafe-inline' https://unpkg.com {GOOGLE_TAGS}; "
        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
        "font-src 'self' https://fonts.gstatic.com; "
        "img-src 'self' data: https:; "
-       "connect-src 'self'; "
+       f"connect-src 'self' {GOOGLE_TAGS} https://*.g.doubleclick.net; "
+       "frame-src https://www.googletagmanager.com; "
        "frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
 
 
@@ -44,6 +47,7 @@ def sweep_once(now: datetime | None = None) -> None:
         bookings.release_expired_holds(conn, now)
         tracking.purge(conn, now, s.tracking_retention_hours)
     notifications.deliver_pending(db.tx)
+    analytics.deliver_pending(db.tx)
 
 
 async def _sweeper() -> None:
@@ -74,6 +78,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Meridian", lifespan=lifespan,
                   docs_url=None if s.is_production else "/api/docs", redoc_url=None,
                   openapi_url=None if s.is_production else "/api/openapi.json")
+
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):

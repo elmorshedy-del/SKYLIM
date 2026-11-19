@@ -30,7 +30,7 @@ def header() -> str:
     <a class="brand" href="/" aria-label="{e(b['name'])} home"><span class="mark" aria-hidden="true">M</span>{e(b['short'])}</a>
     <nav class="links" aria-label="Primary">
       <a href="#services">Services</a><a href="#cabin">The Escalade</a><a href="#pricing">Pricing</a>
-      <a href="#corporate">Corporate</a><a href="#faq">FAQ</a>
+<a href="#faq">FAQ</a>
     </nav>
     <a class="btn btn-light btn-sm" href="#reserve" data-track="nav_cta">Reserve</a>
   </div>
@@ -247,17 +247,19 @@ def realtime() -> str:
 </section>"""
 
 
-def corporate() -> str:
-    points = [("briefcase", "One account, every traveller", "Book for executives, guests and roadshows from one place."),
-              ("card", "Consolidated monthly invoicing", "One invoice, itemised by traveller and journey."),
-              ("shield", "Discretion and duty of care", "Real-time trip status for assistants and travel managers.")]
+def bespoke() -> str:
+    points = [("star", "Evenings & occasions", "Galas, theatre, weddings — dropped at the door, collected when ready."),
+              ("road", "Long distance", "Philadelphia, the Hamptons, the Shore, Connecticut and beyond."),
+              ("route", "Multi-stop days", "Several appointments, one chauffeur, one all-inclusive price.")]
     items = "".join(f'<li>{icon(i, 24)}<div><h3>{e(t)}</h3><p>{e(d)}</p></div></li>' for i, t, d in points)
     return f"""
-<section class="sec dark" id="corporate" aria-labelledby="corp-h">
+<section class="sec dark" id="bespoke-sec" aria-labelledby="bespoke-h">
   <div class="wrap band-in">
     <div>
-      <p class="eyebrow">Corporate accounts</p>
-      <h2 id="corp-h" class="h2">Ground transportation your executives won't think about.</h2>
+      <p class="eyebrow">Bespoke</p>
+      <h2 id="bespoke-h" class="h2">Something less ordinary?</h2>
+      <p class="lede">Tell us the occasion. We will plan the timing, the route and the details, and reply
+        personally with a firm price.</p>
       <ul class="features">{items}</ul>
     </div>
     {bespoke_form()}
@@ -268,11 +270,11 @@ def corporate() -> str:
 def bespoke_form() -> str:
     return """<form class="custom" id="bespoke" novalidate aria-label="Arrange something bespoke">
       <h3 class="custom-h">Arrange something bespoke</h3>
-      <label>I'd like to<select name="kind">
-        <option value="corporate">Open a corporate account</option>
-        <option value="custom_quote">Arrange an event or occasion</option>
-        <option value="custom_quote">Plan a long-distance journey</option>
-        <option value="custom_quote">Something else</option></select></label>
+      <label>Occasion<select name="topic">
+        <option>An event or occasion</option>
+        <option>A long-distance journey</option>
+        <option>A multi-stop day</option>
+        <option>Something else</option></select></label>
       <label>Name<input name="name" autocomplete="name" maxlength="100"></label>
       <label>Email<input name="email" type="email" autocomplete="email" required maxlength="254"></label>
       <label>Phone<input name="phone" type="tel" autocomplete="tel" maxlength="25"></label>
@@ -315,7 +317,8 @@ def footer() -> str:
   <div class="wrap">
     <div class="foot-top">
       <a class="brand" href="/"><span class="mark" aria-hidden="true">M</span>{e(b['short'])}</a>
-      <nav aria-label="Footer"><a href="#services">Services</a><a href="#pricing">Pricing</a><a href="#corporate">Corporate</a>
+      <nav aria-label="Footer"><a href="#services">Services</a><a href="#pricing">Pricing</a>
+<a href="#bespoke">Bespoke</a>
         <a href="#faq">FAQ</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/accessibility">Accessibility</a></nav>
     </div>
     <address><a href="tel:{e(b['phone_raw'])}">{e(b['phone_display'])}</a> · <a href="mailto:{e(b['email'])}">{e(b['email'])}</a> · {e(b['base_town'])}</address>

@@ -47,6 +47,7 @@
     <div class="row"><span>Revenue (net of refunds)</span><b class="num">{{ stats.revenue_cents|money }}</b></div>
     <div class="row"><span>Lost — calendar full</span><b class="num">{{ stats.lost_full }}</b></div>
     <div class="row"><span>Needs arranging</span><b class="num">{{ stats.needs_arranging }}</b></div>
+    <p class="small"><a href="/admin/exports/google-ads-conversions.csv">Download Google Ads conversions (CSV)</a></p>
     {% if stats.sources %}<details><summary>By channel</summary>
       {% for c in stats.sources %}<div class="row"><span>{{ c.channel }}</span><b class="num">{{ c.reservations }} · {{ c.paid }} paid</b></div>{% endfor %}
     </details>{% endif %}

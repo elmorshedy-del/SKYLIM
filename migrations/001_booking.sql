@@ -253,6 +253,22 @@ CREATE TABLE outbox (
 );
 CREATE INDEX outbox_pending_idx ON outbox (created_at) WHERE status = 'pending';
 
+-- --------------------------------------------------------- analytics outbox
+-- Server-side conversion events (GA4 Measurement Protocol), written in the same
+-- transaction as the payment that caused them and delivered by the sweeper.
+CREATE TABLE analytics_outbox (
+    id          bigserial PRIMARY KEY,
+    dedupe_key  text NOT NULL UNIQUE,           -- purchase:<booking>, refund:<payment>:<cents>
+    destination text NOT NULL,                  -- ga4
+    payload     jsonb NOT NULL,
+    status      text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed', 'skipped')),
+    attempts    smallint NOT NULL DEFAULT 0,
+    last_error  text,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    sent_at     timestamptz
+);
+CREATE INDEX analytics_outbox_pending_idx ON analytics_outbox (created_at) WHERE status = 'pending';
+
 -- --------------------------------------------------------- inquiries / waitlist
 CREATE TABLE inquiries (
     id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
