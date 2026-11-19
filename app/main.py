@@ -76,8 +76,9 @@ def create_app() -> FastAPI:
     s = get_settings()
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
     app = FastAPI(title="Meridian", lifespan=lifespan,
-                  docs_url=None if s.is_production else "/api/docs", redoc_url=None,
-                  openapi_url=None if s.is_production else "/api/openapi.json")
+                  # API docs only on a developer's machine — never on a public staging or production URL
+                  docs_url="/api/docs" if s.app_env == "development" else None, redoc_url=None,
+                  openapi_url="/api/openapi.json" if s.app_env == "development" else None)
 
     app.add_middleware(GZipMiddleware, minimum_size=1024)
 
