@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Generate the marketing site and SEO files from data.py.
+"""Generate the marketing site and SEO files from data.py and landing_pages.py.
 
     python3 build.py
 
-Writes index.html, pricing.md, robots.txt and sitemap.xml. Never hand-edit those
-outputs: change data.py (content, rates) or marketing/ (layout), then rebuild.
+Writes index.html, pages/**.html (search landing pages), pricing.md, robots.txt,
+sitemap.xml and seo_lastmod.json. Never hand-edit those outputs: change data.py
+(facts, rates), landing_pages.py (landing copy) or marketing/ (layout), then rebuild.
 """
 from __future__ import annotations
 
@@ -12,9 +13,11 @@ import sys
 from pathlib import Path
 
 import data
+import landing_pages
 from marketing import page, seo
 
 ROOT = Path(__file__).resolve().parent
+LEGAL = ["terms", "privacy", "accessibility"]
 
 
 def warnings() -> list[str]:
@@ -29,11 +32,24 @@ def warnings() -> list[str]:
 
 
 def main() -> int:
-    outputs = {"index.html": page.render(), "pricing.md": seo.pricing_md(),
-               "robots.txt": seo.robots_txt(), "sitemap.xml": seo.sitemap_xml()}
+    pages = {"/": ("index.html", page.render())}
+    for p in landing_pages.PAGES:
+        pages[p["path"]] = (page.landing_file(p), page.render_landing(p))
+    outputs = {name: html for name, html in pages.values()}
+    outputs.update({"pricing.md": seo.pricing_md(), "robots.txt": seo.robots_txt()})
+
+    # sitemap dates follow content, not the build date
+    contents = {path: html for path, (_, html) in pages.items()}
+    contents["/pricing.md"] = outputs["pricing.md"]
+    for name in LEGAL:
+        contents[f"/{name}"] = (ROOT / "app" / "templates" / "legal" / f"{name}.html").read_text()
+    outputs["sitemap.xml"] = seo.sitemap_xml(seo.update_lastmod(contents))
+
     for name, content in outputs.items():
-        (ROOT / name).write_text(content, encoding="utf-8")
-        print(f"wrote {name:<12} {len(content.encode()) / 1024:6.1f} KB")
+        path = ROOT / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        print(f"wrote {name:<40} {len(content.encode()) / 1024:6.1f} KB")
     for w in warnings():
         print("warning:", w)
     return 0

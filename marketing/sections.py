@@ -9,6 +9,7 @@ from __future__ import annotations
 from html import escape as e
 
 import data
+import landing_pages
 from .icons import AMENITY_ICONS, FEATURE_ICONS, cabin_plan, icon
 from .seo import journey_price
 
@@ -16,32 +17,39 @@ V = data.VOICE
 P = data.PRICING
 SERVICE_ICONS = {"airport": "plane", "hourly": "clock", "transfer": "route", "events": "star",
                  "corporate": "briefcase", "long": "road"}
+HOME_IDS = frozenset({"services", "cabin", "pricing", "faq", "bespoke", "reserve"})
+
+
+def _to(anchor: str, local: frozenset) -> str:
+    """In-page link when the section is on this page, otherwise the home page's section."""
+    return f"#{anchor}" if anchor in local else f"/#{anchor}"
 
 
 def _money(cents: int) -> str:
     return f"${cents / 100:,.0f}"
 
 
-def header() -> str:
+def header(local: frozenset = HOME_IDS) -> str:
     b = data.BRAND
     return f"""
 <header class="nav" id="top">
   <div class="wrap nav-in">
-    <a class="brand" href="/" aria-label="{e(b['name'])} home"><span class="mark" aria-hidden="true">M</span>{e(b['short'])}</a>
+    <a class="brand" href="/" aria-label="{e(b['name'])} home"><span class="mark" aria-hidden="true">{e(b['short'][:1])}</span>{e(b['short'])}</a>
     <nav class="links" aria-label="Primary">
-      <a href="#services">Services</a><a href="#cabin">The Escalade</a><a href="#pricing">Pricing</a>
-<a href="#faq">FAQ</a>
+      <a href="{_to('services', local)}">Services</a><a href="/airport-transfers">Airports</a>
+<a href="{_to('cabin', local)}">The Escalade</a><a href="{_to('pricing', local)}">Pricing</a><a href="{_to('faq', local)}">FAQ</a>
     </nav>
     <a class="btn btn-light btn-sm" href="#reserve" data-track="nav_cta">Reserve</a>
   </div>
 </header>"""
 
 
-def _place_options(placeholder: str) -> str:
+def _place_options(placeholder: str, selected: str = "") -> str:
     out = [f'<option value="">{e(placeholder)}</option>']
     for group in data.PLACE_GROUPS:
         out.append(f'<optgroup label="{e(group)}">')
-        out += [f'<option value="{p["code"]}">{e(p["name"])}</option>' for p in data.PLACES if p["group"] == group]
+        out += [f'<option value="{p["code"]}"{" selected" if p["code"] == selected else ""}>{e(p["name"])}</option>'
+                for p in data.PLACES if p["group"] == group]
         out.append("</optgroup>")
     return "".join(out)
 
@@ -63,24 +71,12 @@ def luggage_guide() -> str:
             'or holdall. Golf bags, skis or a stroller? Add them in your notes.</p>')
 
 
-def hero() -> str:
+def quote_panel(preset: tuple[str, str] = ("", "")) -> str:
+    """The reservation form. `preset` pre-selects (pickup, destination) for a landing page."""
+    origin, destination = preset
     hours = "".join(f'<option value="{h}"{" selected" if h == 4 else ""}>{h} hours</option>'
                     for h in range(P["hourly_min_hours"], P["hourly_max_hours"] + 1))
-    return f"""
-<section class="hero" aria-labelledby="hero-h">
-  <div class="wrap hero-in">
-    <div class="hero-copy">
-      <p class="eyebrow">{e(data.BRAND['descriptor'])} · New York &amp; New Jersey</p>
-      <h1 id="hero-h">Arrive composed.</h1>
-      <p class="lede">A Cadillac Escalade and a professional chauffeur for airports, private aviation, meetings
-        and evenings. All-inclusive pricing, reserved in under a minute.</p>
-      <ul class="hero-points">
-        <li>{icon('seat', 18)}Captain's chairs</li><li>{icon('wifi', 18)}Onboard Wi-Fi</li>
-        <li>{icon('sun', 18)}Panoramic sunroof</li>
-      </ul>
-    </div>
-
-    <div class="quote" id="reserve">
+    return f"""<div class="quote" id="reserve">
       <form id="quote-form" class="quote-form" novalidate aria-labelledby="quote-h">
         <h2 id="quote-h" class="quote-h">Reserve your chauffeur</h2>
         <div class="mode-tabs" role="tablist" aria-label="Type of reservation">
@@ -88,9 +84,9 @@ def hero() -> str:
           <button type="button" role="tab" class="mt" aria-selected="false" data-service="hourly">By the hour</button>
         </div>
         <label class="field"><span class="sr">Pickup</span>{icon('pin', 20)}
-          <select id="q-from" required aria-describedby="q-err">{_place_options('Pickup area or airport')}</select></label>
+          <select id="q-from" required aria-describedby="q-err">{_place_options('Pickup area or airport', origin)}</select></label>
         <label class="field" data-for="transfer"><span class="sr">Destination</span>{icon('flag', 20)}
-          <select id="q-to">{_place_options('Destination')}</select></label>
+          <select id="q-to">{_place_options('Destination', destination)}</select></label>
         <label class="field" data-for="hourly" hidden><span class="sr">Duration</span>{icon('clock', 20)}
           <select id="q-hours">{hours}</select></label>
         <label class="field"><span class="sr">Pickup date and time (Eastern)</span>{icon('calendar', 20)}
@@ -117,7 +113,27 @@ def hero() -> str:
         <button class="btn btn-dark btn-block btn-lg" id="r-book" type="button" data-track="reserve_start">Reserve</button>
         <button class="btn btn-ghost btn-block" id="r-edit" type="button">Change details</button>
       </div>
+    </div>"""
+
+
+def hero() -> str:
+    # The H1 carries the descriptive phrase (small line) and the brand line (large): Google reads both,
+    # the reader sees the same composition as before.
+    return f"""
+<section class="hero" aria-labelledby="hero-h">
+  <div class="wrap hero-in">
+    <div class="hero-copy">
+      <h1 id="hero-h"><span class="eyebrow">Chauffeur service · New York City &amp; New Jersey</span>Arrive composed.</h1>
+      <p class="lede">A Cadillac Escalade and a professional chauffeur for Newark, JFK and LaGuardia, Teterboro's
+        private terminals, meetings across Manhattan and evenings out. All-inclusive pricing, reserved in under a
+        minute.</p>
+      <ul class="hero-points">
+        <li>{icon('seat', 18)}Captain's chairs</li><li>{icon('wifi', 18)}Onboard Wi-Fi</li>
+        <li>{icon('sun', 18)}Panoramic sunroof</li>
+      </ul>
     </div>
+
+    {quote_panel()}
   </div>
 </section>"""
 
@@ -134,6 +150,9 @@ def services() -> str:
     <p class="eyebrow">Services</p>
     <h2 id="svc-h" class="h2">Wherever the day takes you.</h2>
     <ul class="services">{cards}</ul>
+    <p class="svc-links">Flying? See how pickups work at <a href="/airport-transfers/newark">Newark</a>,
+      <a href="/airport-transfers/jfk">JFK</a>, <a href="/airport-transfers/laguardia">LaGuardia</a> and
+      <a href="/airport-transfers/teterboro">Teterboro</a>.</p>
   </div>
 </section>"""
 
@@ -201,20 +220,36 @@ def how() -> str:
 </section>"""
 
 
-def pricing() -> str:
+ESTIMATE_NOTE = ("" if P["approved"] else
+                 " Prices shown are estimates until our rates are finalised; your price is confirmed before you pay.")
+
+
+def price_tag(origin: str, destination: str) -> str:
+    """'from $X' markup for a journey, with the launch offer if one is running; '' if not instantly priced."""
+    list_cents, today, offer = journey_price(origin, destination)
+    if not list_cents:
+        return ""
+    price = (f'<b class="num">{_money(today)}</b><s class="num">{_money(list_cents)}</s>' if offer
+             else f'<b class="num">{_money(list_cents)}</b>')
+    return f'<span class="jr-p"><small>from</small>{price}</span>'
+
+
+def journey_items(pairs) -> str:
+    """Tappable journeys: each pre-fills the form and shows the live price."""
     places = {p["code"]: p for p in data.PLACES}
-    cards = []
-    for a, b in data.POPULAR_JOURNEYS:
-        list_cents, today, offer = journey_price(a, b)
-        if not list_cents:
-            continue
-        price = (f'<b class="num">{_money(today)}</b><s class="num">{_money(list_cents)}</s>' if offer
-                 else f'<b class="num">{_money(list_cents)}</b>')
-        cards.append(f'<li><a class="jr" href="#reserve" data-from="{a}" data-to="{b}">'
-                     f'<span>{e(places[a]["short"])} <i aria-hidden="true">→</i> {e(places[b]["short"])}</span>'
-                     f'<span class="jr-p"><small>from</small>{price}</span></a></li>')
-    note = ("" if P["approved"] else
-            " Prices shown are estimates until our rates are finalised; your price is confirmed before you pay.")
+    out = []
+    for a, b in pairs:
+        tag = price_tag(a, b)
+        if tag:
+            out.append(f'<li><a class="jr" href="#reserve" data-from="{a}" data-to="{b}">'
+                       f'<span>{e(places[a]["short"])} <i aria-hidden="true">→</i> {e(places[b]["short"])}</span>'
+                       f'{tag}</a></li>')
+    return "".join(out)
+
+
+def pricing() -> str:
+    cards = [journey_items(data.POPULAR_JOURNEYS)]
+    note = ESTIMATE_NOTE
     return f"""
 <section class="sec" id="pricing" aria-labelledby="pricing-h">
   <div class="wrap">
@@ -305,13 +340,13 @@ def bespoke_form() -> str:
     </form>"""
 
 
-def faq() -> str:
+def faq(items_: list[tuple[str, str]] | None = None, heading: str = "Before you reserve.") -> str:
     items = "".join(f'<details{" open" if i == 0 else ""}><summary>{e(q)}</summary><p>{e(a)}</p></details>'
-                    for i, (q, a) in enumerate(data.FAQS))
+                    for i, (q, a) in enumerate(items_ if items_ is not None else data.FAQS))
     return f"""
 <section class="sec" id="faq" aria-labelledby="faq-h">
   <div class="wrap faq-in">
-    <div><p class="eyebrow">Questions</p><h2 id="faq-h" class="h2">Before you reserve.</h2>
+    <div><p class="eyebrow">Questions</p><h2 id="faq-h" class="h2">{e(heading)}</h2>
       <p class="lede">Anything else? <a href="mailto:{e(data.BRAND['email'])}">{e(data.BRAND['email'])}</a></p></div>
     <div class="faq">{items}</div>
   </div>
@@ -328,22 +363,34 @@ def closing() -> str:
 </section>"""
 
 
-def footer() -> str:
+FOOTER_GROUPS = [
+    ("Airports", ["/airport-transfers/newark", "/airport-transfers/jfk", "/airport-transfers/laguardia",
+                  "/airport-transfers/teterboro"]),
+    ("Chauffeur service", ["/nyc-chauffeur-service", "/nj-limo-service", "/airport-transfers"]),
+]
+
+
+def footer(local: frozenset = HOME_IDS) -> str:
     b = data.BRAND
     authority = f'<p>{e(b["authority_display"])}</p>' if b.get("authority_display") else ""
+    groups = "".join(
+        f'<div><p class="foot-h">{e(title)}</p><ul>'
+        + "".join(f'<li><a href="{path}">{e(landing_pages.BY_PATH[path]["link"])}</a></li>' for path in paths)
+        + "</ul></div>" for title, paths in FOOTER_GROUPS)
     return f"""
 <footer class="foot">
   <div class="wrap">
     <div class="foot-top">
-      <a class="brand" href="/"><span class="mark" aria-hidden="true">M</span>{e(b['short'])}</a>
-      <nav aria-label="Footer"><a href="#services">Services</a><a href="#pricing">Pricing</a>
-<a href="#bespoke">Bespoke</a>
-        <a href="#faq">FAQ</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/accessibility">Accessibility</a></nav>
+      <a class="brand" href="/"><span class="mark" aria-hidden="true">{e(b['short'][:1])}</span>{e(b['short'])}</a>
+      <nav aria-label="Footer"><a href="{_to('services', local)}">Services</a><a href="{_to('pricing', local)}">Pricing</a>
+<a href="{_to('bespoke', local)}">Bespoke</a>
+        <a href="{_to('faq', local)}">FAQ</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/accessibility">Accessibility</a></nav>
     </div>
+    <div class="foot-links">{groups}</div>
     <address><a href="tel:{e(b['phone_raw'])}">{e(b['phone_display'])}</a> · <a href="mailto:{e(b['email'])}">{e(b['email'])}</a> · {e(b['base_town'])}</address>
     {authority}
     <p class="areas">{e(b['descriptor'])} across New Jersey, New York City, Westchester, Long Island, Fairfield County
-      and Philadelphia — Newark, JFK, LaGuardia, Teterboro, Morristown and Westchester airports.</p>
+      and Philadelphia.</p>
     <p class="fine">© <span data-year></span> {e(b['name'])}. {e(data.OPERATIONS['hours_label'])}.</p>
   </div>
 </footer>

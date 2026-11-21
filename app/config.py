@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 LOCAL_TZ = ZoneInfo("America/New_York")
@@ -170,6 +171,9 @@ def launch_gates(s: Settings | None = None) -> list[tuple[str, bool, str]]:
         ("Stripe live key configured", s.stripe_live, "STRIPE_SECRET_KEY must be sk_live_/rk_live_"),
         ("Stripe webhook secret configured", s.stripe_webhook_secret.startswith("whsec_"), "STRIPE_WEBHOOK_SECRET"),
         ("HTTPS public URL", s.public_base_url.startswith("https://"), s.public_base_url),
+        ("Public URL is the canonical domain",
+         (urlparse(s.public_base_url).hostname or "").removeprefix("www.") == data.BRAND["domain"].removeprefix("www."),
+         f"PUBLIC_BASE_URL must be https://{data.BRAND['domain']} — canonical tags and the sitemap use it"),
         ("Admin password set", s.admin_password_hash.startswith("scrypt$"), "ADMIN_PASSWORD_HASH"),
         ("Secret key set", len(s.secret_key) >= 32 and s.secret_key != "dev-only-not-secret", "SECRET_KEY >= 32 chars"),
         ("Transactional email configured", bool(s.postmark_token and s.email_from), "POSTMARK_SERVER_TOKEN / EMAIL_FROM"),

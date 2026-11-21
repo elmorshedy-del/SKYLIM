@@ -89,6 +89,8 @@ tags are injected at serve time with validated IDs and Consent Mode v2 defaults.
 | Change | Where | Then |
 |---|---|---|
 | Copy, services, FAQs, amenities, places, luggage guide | `data.py` | `python3 build.py`, redeploy |
+| Landing pages (airports, NYC, NJ): words, journeys, FAQs | `landing_pages.py` | `python3 build.py`, `pytest tests/test_seo.py`, redeploy |
+| Brand name or logo letter | `data.BRAND` | `python3 tools/make_images.py`, `python3 build.py` |
 | Pricing inputs, hourly rate, launch offer | `data.PRICING` | `python3 tools/rate_model.py --write`, review, `python3 build.py` |
 | Layout | `marketing/` | `python3 build.py` |
 | Styles / behaviour | `static/site.css`, `static/site.js`, `static/tokens.css` | redeploy |

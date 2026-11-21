@@ -25,6 +25,7 @@ BRAND = {
     "base_town": "Essex County, New Jersey",  # PLACEHOLDER — public town shown as a service-area business
     "authority_display": "",                  # e.g. "NJ limousine licence #… · USDOT #…" — only once issued
     "review_url": "",                         # Google Business Profile "Ask for reviews" link (g.page/r/...)
+    "same_as": [],                            # official profile URLs once live: Google Business Profile, Yelp, LinkedIn…
     "placeholder": True,                      # set False once every field above is real
 }
 
@@ -302,7 +303,7 @@ INCLUDED = [
     ("Tolls and congestion charges", "Every bridge, tunnel and congestion charge on your route."),
     ("Gratuity", "Included. Nothing is expected at the door."),
     ("Meet and greet", "At the terminal, the FBO or your lobby."),
-    ("Waiting time", "15 minutes at your door; more for arrivals, by arrangement."),
+    ("Waiting time", "15 minutes at your door; 45 minutes at the airport, with your flight followed."),
     ("Your cabin, prepared", "Temperature, music and conversation set before you sit."),
 ]
 
@@ -322,6 +323,10 @@ FAQS = [
     ("Can I keep the car for the day?",
      "Yes. Book by the hour and your chauffeur stays with you between meetings — plans can change on the day. "
      "There is a three-hour minimum."),
+    ("Is this a limousine or a black car service?",
+     "A private chauffeur service — what many people call a black car service. Every journey is in a Cadillac "
+     "Escalade rather than a stretch limousine, reserved in advance and driven by a professional chauffeur, with "
+     "the price agreed before you travel."),
     ("Do you serve private aviation?",
      "Yes — Teterboro, Morristown and Westchester. Give us your tail number or FBO and we will meet you there."),
     ("What vehicle will arrive?",

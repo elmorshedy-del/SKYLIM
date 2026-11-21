@@ -1,4 +1,4 @@
-"""Assembles the homepage document from sections."""
+"""Assembles complete documents: the home page and the search landing pages."""
 from __future__ import annotations
 
 import json
@@ -6,12 +6,12 @@ import re
 from pathlib import Path
 
 import data
-from . import booking, sections, seo
+from . import booking, landing, sections, seo
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
 ANALYTICS_SLOT = "<!--ANALYTICS-->"   # replaced at serve time (app/web/site.py) from environment settings
 
-ASSET_VERSION = seo.TODAY.replace("-", "")   # cache-busts site.css / site.js on each build
+ASSET_VERSION = seo.TODAY.replace("-", "")   # cache-busts site.js on each build
 
 
 def page_config() -> str:
@@ -32,23 +32,14 @@ def inline_css() -> str:
     return re.sub(r"\s*\n\s*", "", css)                             # line breaks and indentation
 
 
-def render() -> str:
-    body = "".join([
-        sections.header(),
-        '<main id="main">',
-        sections.hero(), sections.services(), sections.cabin(), sections.standard(), sections.how(),
-        sections.pricing(), sections.realtime(), sections.bespoke(), sections.faq(), sections.closing(),
-        "</main>",
-        sections.footer(),
-        booking.dialog(),
-    ])
+def document(head: str, body: str) -> str:
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-{seo.head_meta()}
+{head}
 <link rel="preload" href="/static/fonts/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>{inline_css()}</style>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
@@ -62,3 +53,26 @@ def render() -> str:
 </body>
 </html>
 """
+
+
+def render() -> str:
+    """The home page."""
+    body = "".join([
+        sections.header(),
+        '<main id="main">',
+        sections.hero(), sections.services(), sections.cabin(), sections.standard(), sections.how(),
+        sections.pricing(), sections.realtime(), sections.bespoke(), sections.faq(), sections.closing(),
+        "</main>",
+        sections.footer(),
+        booking.dialog(),
+    ])
+    return document(seo.head_meta(), body)
+
+
+def render_landing(page: dict) -> str:
+    return document(landing.head(page), landing.body(page))
+
+
+def landing_file(page: dict) -> str:
+    """Where a landing page is written, relative to the repository root: /a/b -> pages/a/b.html"""
+    return f"pages{page['path']}.html"

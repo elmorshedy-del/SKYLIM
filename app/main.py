@@ -93,6 +93,10 @@ def create_app() -> FastAPI:
         h.setdefault("Content-Security-Policy", CSP)
         if s.cookie_secure:
             h.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        if s.app_env != "production":
+            # Staging and preview copies stay out of search results, so Google never indexes placeholder
+            # contact details or a duplicate of the real domain. Crawling stays allowed so the rule is seen.
+            h.setdefault("X-Robots-Tag", "noindex, nofollow")
         return resp
 
     @app.exception_handler(AppError)
