@@ -97,7 +97,7 @@ def _review_flag(quote: dict, prefs: JourneyPreferences) -> Optional[str]:
 def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDetails,
            preferences: JourneyPreferences, remember: bool, accepted_policy_version: str,
            source: Optional[str], cat: Catalog, now: datetime, attribution: Optional[dict] = None,
-           instant: bool = False, settings: Optional[Settings] = None) -> tuple[dict, str]:
+           instant: bool = False, settings: Optional[Settings] = None, is_test: bool = False) -> tuple[dict, str]:
     """Turn a quote into a reservation. Returns (booking, trip_token).
 
     instant=True (decided by the caller from quotes.instant_allowed) holds the slot
@@ -135,12 +135,12 @@ def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDe
                status, service, hours, pickup_at, service_start, service_end, pickup_address, dropoff_address,
                flight_number, passengers, large_bags, carry_ons, notes, preferences, remember_preferences,
                policy_version, amount_cents, access_token_hash, review_flag, source, attribution, instant,
-               created_at, updated_at)
+               is_test, created_at, updated_at)
            VALUES (%(id)s, %(ref)s, %(quote)s, %(customer)s, %(name)s, %(email)s, %(phone)s, 'requested',
                %(service)s, %(hours)s, %(pickup_at)s, %(start)s, %(end)s, %(pickup)s, %(drop)s, %(flight)s,
                %(pax)s, %(bags)s, %(carry)s,
                %(notes)s, %(prefs)s, %(remember)s, %(policy)s, %(amount)s, %(token_hash)s, %(flag)s,
-               %(source)s, %(attribution)s, %(instant)s, %(now)s, %(now)s)
+               %(source)s, %(attribution)s, %(instant)s, %(is_test)s, %(now)s, %(now)s)
            RETURNING *""",
         {"id": booking_id, "token_hash": token_hash(token), "ref": ref, "quote": q["id"],
          "customer": customer["id"], "name": contact.name, "email": email, "phone": contact.phone,
@@ -150,7 +150,7 @@ def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDe
          "prefs": Jsonb(preferences.model_dump()), "remember": remember, "policy": cat.policy["version"],
          "amount": q["amount_cents"], "flag": _review_flag(q, preferences),
          "source": (source or "")[:120] or None, "attribution": Jsonb(attribution) if attribution else None,
-         "instant": instant, "now": now}).fetchone()
+         "instant": instant, "is_test": is_test, "now": now}).fetchone()
     log_event(conn, booking["id"], "customer", None, Status.REQUESTED)
     if instant:
         booking = approve(conn, booking["id"], now=now, settings=settings, actor="system",

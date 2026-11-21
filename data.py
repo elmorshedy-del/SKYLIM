@@ -273,6 +273,18 @@ BENCHMARKS = [
      "source": "fareestimate.com $75-107 excl. tolls, fees and tip (midpoint + 20% tip)"},
 ]
 
+# ---------------------------------------------------------------- test trip
+# The owner's $1 test trip (app/services/test_trip.py): /admin -> "Start a $1 test trip" books and pays
+# a real trip to check booking, Stripe, confirmation and the trip page, then cancel it to test the
+# refund. It never blocks a client's time and never counts as revenue. Set "enabled": False when done.
+TEST_TRIP = {
+    "enabled": True,
+    "amount_cents": 100,                      # $1.00
+    "route": ("manhattan", "jfk"),            # any route the booking rules allow
+    "lead_hours": 48,                         # pickup time shown on the test trip
+    "hold_minutes": 60,                       # time to complete Stripe Checkout
+}
+
 # ------------------------------------------------------------------ payment
 # What clients see at Stripe Checkout (Dashboard -> Settings -> Payment methods). Keep in step with Stripe.
 PAYMENT = {

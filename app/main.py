@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import db
-from .config import get_settings
+from .config import get_settings, on_canonical_domain
 from .domain.status import TransitionError
 from .errors import AppError
 from .services import analytics, bookings, notifications, stripe_setup, tracking
@@ -98,9 +98,9 @@ def create_app() -> FastAPI:
         h.setdefault("Content-Security-Policy", CSP)
         if s.cookie_secure:
             h.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-        if s.app_env != "production":
-            # Staging and preview copies stay out of search results, so Google never indexes placeholder
-            # contact details or a duplicate of the real domain. Crawling stays allowed so the rule is seen.
+        if not (s.is_production and on_canonical_domain(s)):
+            # Only production on the brand's own domain is indexed: staging, previews and the hosting
+            # address never compete with it in search. Crawling stays allowed so the rule is seen.
             h.setdefault("X-Robots-Tag", "noindex, nofollow")
         return resp
 

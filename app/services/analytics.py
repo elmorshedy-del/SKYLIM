@@ -33,6 +33,8 @@ def _item(booking: dict, value: float) -> dict:
 
 
 def enqueue_purchase(conn: psycopg.Connection, booking: dict, paid_cents: int) -> None:
+    if booking.get("is_test"):                 # the owner's test trip is never revenue
+        return
     value = paid_cents / 100
     attribution = booking.get("attribution") or {}
     payload = {"client_id": _client_id(booking), "events": [{"name": "purchase", "params": {
@@ -45,6 +47,8 @@ def enqueue_purchase(conn: psycopg.Connection, booking: dict, paid_cents: int) -
 
 def enqueue_refund(conn: psycopg.Connection, booking: dict, payment_id, refunded_total_cents: int,
                    delta_cents: int) -> None:
+    if booking.get("is_test"):
+        return
     payload = {"client_id": _client_id(booking), "events": [{"name": "refund", "params": {
         "transaction_id": booking["ref"], "currency": "USD", "value": delta_cents / 100}}]}
     _enqueue(conn, f"refund:{payment_id}:{refunded_total_cents}", payload)

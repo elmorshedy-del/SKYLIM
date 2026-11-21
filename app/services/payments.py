@@ -23,7 +23,7 @@ from typing import Protocol
 
 import stripe
 
-from ..config import Settings, get_settings, payments_live, webhook_secret
+from ..config import Settings, get_settings, payments_live, payments_possible, webhook_secret
 from ..db import tx
 from ..domain.status import Status
 from ..errors import Conflict, Forbidden, Unavailable
@@ -132,6 +132,11 @@ def checkout_params(b: dict, *, expires_at: datetime, s: Settings) -> dict:
         "success_url": f"{base}/trip/{token}?checkout=returned",
         "cancel_url": f"{base}/trip/{token}?checkout=cancelled",
     }
+    if b.get("is_test"):                       # unmistakable on Stripe's page, receipt and dashboard
+        params["line_items"][0]["price_data"]["product_data"] = {
+            "name": f"Test trip {b['ref']} — owner's payment check",
+            "description": "Not a real ride. Cancel it in /admin to test the refund."}
+        params["metadata"]["test_trip"] = "true"
     if s.stripe_excluded_methods:
         params["excluded_payment_method_types"] = list(s.stripe_excluded_methods)
     if s.stripe_payment_method_configuration:
@@ -143,10 +148,11 @@ def start_checkout(token: str, *, now: datetime | None = None, s: Settings | Non
     """Return a Stripe Checkout URL for an approved booking (reusing a live session)."""
     s = s or get_settings()
     now = now or datetime.now(timezone.utc)
-    if not payments_live(s):
-        raise Unavailable("Online payment is not switched on yet. We will contact you to arrange payment.")
     with tx() as conn:
         b = bookings.by_token(conn, token, lock=True)
+        # Clients need payments live; the owner's test trip only needs them possible (see test_trip.py).
+        if not (payments_possible(s) if b["is_test"] else payments_live(s)):
+            raise Unavailable("Online payment is not switched on yet. We will contact you to arrange payment.")
         if b["status"] != Status.PAYMENT_PENDING:
             raise Conflict("This trip is not awaiting payment.", code="not_payable")
         hold = conn.execute("SELECT * FROM reservations WHERE booking_id = %s AND released_at IS NULL",

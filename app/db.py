@@ -18,6 +18,9 @@ MIGRATIONS = Path(__file__).resolve().parent.parent / "migrations"
 # Fixed identifiers for the launch fleet, so seeds are idempotent across deploys.
 VEHICLE_ID = uuid.UUID("6f1c2a52-0e0b-4d61-9b1e-3c1d00000001")
 DRIVER_ID = uuid.UUID("6f1c2a52-0e0b-4d61-9b1e-3c1d00000101")
+# Hidden calendar for the owner's $1 test trips: inactive, so it never appears in the fleet or availability.
+TEST_VEHICLE_ID = uuid.UUID("6f1c2a52-0e0b-4d61-9b1e-3c1d00000ff1")
+TEST_DRIVER_ID = uuid.UUID("6f1c2a52-0e0b-4d61-9b1e-3c1d00000ff2")
 
 _pool: ConnectionPool | None = None
 
@@ -96,6 +99,14 @@ def seed(conn: psycopg.Connection) -> None:
         """INSERT INTO drivers (id, code, display_name) VALUES (%s, %s, %s)
            ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name""",
         (DRIVER_ID, d["code"], d["display_name"]))
+    conn.execute(
+        """INSERT INTO vehicles (id, code, display_name, max_passengers, active) VALUES (%s, %s, %s, %s, false)
+           ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name""",
+        (TEST_VEHICLE_ID, "test-trip-vehicle", v["display_name"], v["max_passengers"]))
+    conn.execute(
+        """INSERT INTO drivers (id, code, display_name, active) VALUES (%s, %s, %s, false)
+           ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name""",
+        (TEST_DRIVER_ID, "test-trip-driver", d["display_name"]))
     s = get_settings()
     for raw, kind, label in ((s.tracker_phone_id, "phone", "Chauffeur phone (Traccar Client)"),
                              (s.tracker_vehicle_id, "vehicle", "In-car tracker")):

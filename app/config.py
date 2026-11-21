@@ -172,11 +172,12 @@ def launch_gates(s: Settings | None = None) -> list[tuple[str, bool, str]]:
         ("Stripe webhook connected", webhook_secret(s).startswith("whsec_"),
          "Automatic a minute after STRIPE_SECRET_KEY is set (or set STRIPE_WEBHOOK_SECRET by hand)"),
         ("HTTPS public URL", s.public_base_url.startswith("https://"), s.public_base_url),
-        ("Public URL is the canonical domain",
-         (urlparse(s.public_base_url).hostname or "").removeprefix("www.") == data.BRAND["domain"].removeprefix("www."),
+        ("Public URL is the canonical domain", on_canonical_domain(s),
          f"PUBLIC_BASE_URL must be https://{data.BRAND['domain']} — canonical tags and the sitemap use it"),
         ("Admin password set", s.admin_password_hash.startswith("scrypt$"), "ADMIN_PASSWORD_HASH"),
         ("Secret key set", len(s.secret_key) >= 32 and s.secret_key != "dev-only-not-secret", "SECRET_KEY >= 32 chars"),
+        ("Owner test trip switched off", not data.TEST_TRIP.get("enabled"),
+         "Set TEST_TRIP['enabled'] = False in data.py once the $1 test has passed"),
         ("Transactional email configured", bool(s.postmark_token and s.email_from),
          "Recommended, not required: until POSTMARK_SERVER_TOKEN / EMAIL_FROM are set, clients get Stripe's "
          "receipt and their on-screen trip page, and trip emails wait in /admin to be sent by hand"),
@@ -203,16 +204,28 @@ def webhook_secret(s: Settings | None = None) -> str:
 
 
 # Shown in /admin but not required to take payment: without them the site degrades gracefully.
-RECOMMENDED_GATES = frozenset({"Transactional email configured"})
+RECOMMENDED_GATES = frozenset({"Transactional email configured", "Owner test trip switched off"})
 
 
-def payments_live(s: Settings | None = None) -> bool:
-    """Online payment is offered only when explicitly enabled, keys exist, and —
-    in production — every launch gate passes. Staging must use test keys."""
+def payments_possible(s: Settings | None = None) -> bool:
+    """Payment can technically be taken: switched on, key and webhook in place — and a live key is
+    refused outright outside production, so staging can never take real money. Launch gates are not
+    considered here; the owner's test trip relies on exactly this."""
     s = s or get_settings()
     if not s.payments_enabled or not s.stripe_secret_key or not webhook_secret(s):
         return False
-    if s.is_production:
-        return all(ok for (name, ok, _) in launch_gates(s) if name not in RECOMMENDED_GATES)
-    # Outside production a live key is refused outright: staging can never take real money.
-    return not s.stripe_live
+    return s.is_production or not s.stripe_live
+
+
+def payments_live(s: Settings | None = None) -> bool:
+    """Clients may pay online: payment is possible and, in production, every required launch gate passes."""
+    s = s or get_settings()
+    if not payments_possible(s):
+        return False
+    return not s.is_production or all(ok for (name, ok, _) in launch_gates(s) if name not in RECOMMENDED_GATES)
+
+
+def on_canonical_domain(s: Settings) -> bool:
+    """PUBLIC_BASE_URL is the brand's own domain (canonical tags and the sitemap point there)."""
+    import data
+    return (urlparse(s.public_base_url).hostname or "").removeprefix("www.") == data.BRAND["domain"].removeprefix("www.")

@@ -8,7 +8,7 @@
 {% macro trip_summary(b) %}
   <div class="head" style="margin-bottom:8px">
     <div>
-      <p class="label">{{ b.ref }} · {{ status_labels[b.status] }}</p>
+      <p class="label">{{ b.ref }} · {{ status_labels[b.status] }}{% if b.is_test %} · <span class="flag">Test trip</span>{% endif %}</p>
       <h2>{{ b.pickup_at|et }}</h2>
     </div>
     <b class="num" style="font-size:1.15rem">{{ b.amount_cents|money }}</b>
@@ -26,6 +26,20 @@
 {% block content %}
 {% if msg %}<div class="notice ok" role="status">{{ msg }}</div>{% endif %}
 {% if err %}<div class="notice bad" role="alert">{{ err }}</div>{% endif %}
+
+{% if test_trip.enabled %}
+<section class="card">
+  <p class="label">Test trip</p>
+  <p class="small muted">Book and pay {{ test_trip.amount_cents|money }} yourself to check the whole path — booking,
+    Stripe, confirmation, trip page. Then cancel it below to test the refund. It never blocks a client's time and
+    never counts as revenue. Switch it off in data.py (TEST_TRIP) when you are done.</p>
+  {% if test_trip.ready %}
+    <form method="post" action="/admin/test-trip"><button class="btn" type="submit">Start a {{ test_trip.amount_cents|money }} test trip</button></form>
+  {% else %}
+    <p class="small">Not available yet: {{ test_trip.reason }}.</p>
+  {% endif %}
+</section>
+{% endif %}
 
 {% if not payments_live %}
 <section class="card">

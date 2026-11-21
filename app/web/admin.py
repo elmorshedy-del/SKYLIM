@@ -15,13 +15,16 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
+import data
+
 from ..config import LOCAL_TZ, get_settings, launch_gates, payments_live
 from ..db import DRIVER_ID, VEHICLE_ID, tx
+from ..domain.catalog import get_catalog
 from ..domain.preferences import JourneyPreferences
 from ..domain.status import OPERATIONAL_NEXT, Status
 from ..errors import AppError
 from ..security import ADMIN_COOKIE, ADMIN_SESSION_SECONDS, make_admin_session, verify_password
-from ..services import bookings, flags, insights, payments
+from ..services import bookings, flags, insights, payments, test_trip
 from ..services.notifications import trip_url
 from .deps import TEMPLATES, clock, is_admin, rate_limit, require_admin, same_origin
 
@@ -102,6 +105,8 @@ def dashboard(request: Request, now: datetime = Depends(clock)):
     return TEMPLATES.TemplateResponse(request, "admin.html", {
         "g": groups, "now": now, "vehicle": vehicle, "driver": driver, "trackers": trackers,
         "outbox": outbox, "inquiries": inquiries, "gates": launch_gates(s), "payments_live": payments_live(s),
+        "test_trip": {"enabled": test_trip.enabled(), "ready": test_trip.readiness(s)[0],
+                      "reason": test_trip.readiness(s)[1], "amount_cents": data.TEST_TRIP["amount_cents"]},
         "blocks": blocks, "instant_on": instant_on, "stats": stats,
         "settings": s, "msg": request.query_params.get("msg"), "err": request.query_params.get("err"),
     }, headers=NO_STORE)
@@ -230,6 +235,19 @@ def remove_block(block_id: uuid.UUID, now: datetime = Depends(clock)):
     return _back("Block removed.")
 
 
+@router.post("/test-trip", dependencies=[Depends(require_admin)])
+def start_test_trip(now: datetime = Depends(clock)):
+    """The owner's $1 test trip: book it on the hidden test calendar and go straight to Stripe Checkout."""
+    s = get_settings()
+    try:
+        with tx() as conn:
+            _, token = test_trip.start(conn, now=now, settings=s, cat=get_catalog())
+        url = payments.start_checkout(token, now=now, s=s)
+    except AppError as e:
+        return _back(e.message, error=True)
+    return RedirectResponse(url, status_code=303)
+
+
 @router.get("/exports/google-ads-conversions.csv", dependencies=[Depends(require_admin)])
 def google_ads_conversions(now: datetime = Depends(clock)):
     """Paid reservations that came from a Google Ads click, in Google's offline-conversion
@@ -239,7 +257,7 @@ def google_ads_conversions(now: datetime = Depends(clock)):
         rows = conn.execute(
             """SELECT b.attribution->>'gclid' AS gclid, p.paid_at, p.amount_cents - p.refunded_cents AS cents
                FROM bookings b JOIN payments p ON p.booking_id = b.id
-               WHERE p.status IN ('paid', 'partially_refunded') AND b.attribution ? 'gclid'
+               WHERE p.status IN ('paid', 'partially_refunded') AND b.attribution ? 'gclid' AND NOT b.is_test
                  AND p.paid_at > %s ORDER BY p.paid_at""", (now - timedelta(days=89),)).fetchall()
     lines = ["Parameters:TimeZone=America/New_York",
              "Google Click ID,Conversion Name,Conversion Time,Conversion Value,Conversion Currency"]

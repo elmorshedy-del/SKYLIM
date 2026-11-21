@@ -44,7 +44,8 @@ tools/make_images.py    renders static/og.png (share image) and static/logo.png 
 | Customer links are unguessable and stored only as hashes | `security.trip_token`, `token_hash` |
 | Payments off in production until launch gates pass | `config.payments_live()` |
 | A landing page never advertises a journey we cannot sell online | `tests/test_seo.py` (authority check on every listed route and price token) |
-| Staging is never indexed by search engines | `X-Robots-Tag: noindex` unless `APP_ENV=production` (`main.py`) |
+| The owner's test trip never blocks a client or counts as revenue | hidden test vehicle/driver; `bookings.is_test` excluded from analytics, Ads export and funnel (`tests/test_test_trip.py`) |
+| Staging is never indexed by search engines | `X-Robots-Tag: noindex` unless production on the brand's own domain (`main.py`) |
 
 ## Request lifecycle
 

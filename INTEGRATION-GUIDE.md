@@ -62,6 +62,15 @@ production, after every required launch gate passes; staging accepts test keys o
 6. **Test**: before going live, make one real booking, then refund it from `/admin`; replay its webhook from
    the Dashboard — the site must answer `duplicate`/`already_paid` and never confirm twice.
 
+### Owner's $1 test trip
+
+`data.TEST_TRIP["enabled"] = True` shows **Start a $1 test trip** in `/admin`. It books a real trip through the
+normal path on a hidden test calendar (never blocks a client), opens Stripe Checkout for $1, and confirms via
+the webhook like any booking. Pay it, check the trip page and Stripe's receipt, then **Cancel** it in `/admin`
+to test the refund. Test trips never reach Google Analytics, Google Ads or the funnel. With a live key it needs
+`APP_ENV=production` (clients stay on requests until the launch gates pass). Set `enabled` to `False` when done;
+`/admin` reminds you while it is on.
+
 ## 4. Live location (Traccar Client)
 
 1. Install **Traccar Client** (iOS/Android) on the chauffeur's phone.
