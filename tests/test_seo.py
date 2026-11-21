@@ -179,6 +179,10 @@ def test_logo_on_every_page_without_web_fonts(pages):
     """Header wordmark and footer lockup are inline outlined SVG: no font request, crisp at any size."""
     for path in pages:
         html = site.render() if path == "/" else site.render_landing(landing_pages.BY_PATH[path])
-        assert html.count('class="wm"') == 1 and html.count('class="lockup brand-anim"') == 1, path
+        assert html.count('class="wm"') == 1, path                                   # header wordmark
+        assert html.count('class="lockup brand-art brand-anim"') == 1, path          # footer: draws once
+        assert html.count('class="lockup brand-art brand-loop"') == (1 if path == "/" else 0), path  # home hero
         assert f'aria-label="{data.BRAND["name"]} home"' in html
         assert "fonts.googleapis.com" not in html
+        ids = re.findall(r'\sid="([^"]+)"', html)
+        assert len(ids) == len(set(ids)), (path, sorted({i for i in ids if ids.count(i) > 1}))

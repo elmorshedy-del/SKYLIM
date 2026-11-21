@@ -35,29 +35,29 @@ def wordmark(cls: str = "wm") -> str:
             f'<path fill="currentColor" d="{w["d"]}"/></svg>')
 
 
-def _suv(p: str) -> str:
-    """The SUV drawing, verbatim from the design (viewBox 0 0 420 104). `p` prefixes ids and classes."""
+def _suv(i: str) -> str:
+    """The SUV drawing, verbatim from the design (viewBox 0 0 420 104). `i` prefixes ids, unique per logo."""
     return f"""<defs>
-<linearGradient id="{p}gg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="420" y2="0"><stop offset="0" stop-color="{ICE}" stop-opacity="0"/><stop offset=".5" stop-color="{ICE}" stop-opacity=".5"/><stop offset="1" stop-color="{ICE}" stop-opacity="0"/></linearGradient>
-<linearGradient id="{p}bg" gradientUnits="userSpaceOnUse" x1="366" y1="0" x2="418" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
-<filter id="{p}glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4"/></filter>
-<filter id="{p}soft" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="1.3"/></filter>
+<linearGradient id="{i}gg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="420" y2="0"><stop offset="0" stop-color="{ICE}" stop-opacity="0"/><stop offset=".5" stop-color="{ICE}" stop-opacity=".5"/><stop offset="1" stop-color="{ICE}" stop-opacity="0"/></linearGradient>
+<linearGradient id="{i}bg" gradientUnits="userSpaceOnUse" x1="366" y1="0" x2="418" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<filter id="{i}glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="{i}soft" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="1.3"/></filter>
 </defs>
 <g fill="none" stroke="{ICE}" stroke-linecap="round" stroke-linejoin="round">
-<path class="{p}ground" d="M0 97H420" stroke="url(#{p}gg)" stroke-width="1.2"/>
-<path class="{p}fade" d="M98 12L102 8H230L234 12" stroke-opacity=".65" stroke-width="1.3"/>
-<path class="{p}body" d="M72 84C66 84 63 81 63 76V58L67 22C68 16 72 13 78 13L252 12C258 12 262 14 266 18L294 44C296 46 299 47 303 47L352 49C358 49 362 52 363 57L365 74C365 80 362 84 356 84H330A24 24 0 0 0 282 84H142A24 24 0 0 0 94 84Z" stroke-width="2"/>
-<path class="{p}window" d="M88 20L254 19C257 19 259 20 261 22L281 45L84 46Z" stroke-opacity=".65" stroke-width="1.3"/>
-<path class="{p}fade" d="M196 19.5V45.6M128 19.8V45.8" stroke-opacity=".65" stroke-width="1.3"/>
-<path class="{p}fade" d="M150 89H276" stroke-opacity=".65" stroke-width="1.6"/>
-<circle class="{p}wheel" cx="118" cy="80" r="16" fill="{NAVY}" stroke-width="2"/>
-<circle class="{p}fade" cx="118" cy="80" r="5.5" stroke-opacity=".65" stroke-width="1.3"/>
-<circle class="{p}wheel" cx="306" cy="80" r="16" fill="{NAVY}" stroke-width="2"/>
-<circle class="{p}fade" cx="306" cy="80" r="5.5" stroke-opacity=".65" stroke-width="1.3"/>
-<path class="{p}glint" d="M63 58L67 22C68 16 72 13 78 13L252 12C258 12 262 14 266 18L294 44C296 46 299 47 303 47L352 49C358 49 362 52 363 57" stroke="#fff" stroke-width="3" filter="url(#{p}soft)"/>
-<path class="{p}beam" d="M368 54L418 51" stroke="url(#{p}bg)" stroke-width="3"/>
+<path class="cl-ground" d="M0 97H420" stroke="url(#{i}gg)" stroke-width="1.2"/>
+<path class="cl-fade" d="M98 12L102 8H230L234 12" stroke-opacity=".65" stroke-width="1.3"/>
+<path class="cl-body" d="M72 84C66 84 63 81 63 76V58L67 22C68 16 72 13 78 13L252 12C258 12 262 14 266 18L294 44C296 46 299 47 303 47L352 49C358 49 362 52 363 57L365 74C365 80 362 84 356 84H330A24 24 0 0 0 282 84H142A24 24 0 0 0 94 84Z" stroke-width="2"/>
+<path class="cl-window" d="M88 20L254 19C257 19 259 20 261 22L281 45L84 46Z" stroke-opacity=".65" stroke-width="1.3"/>
+<path class="cl-fade" d="M196 19.5V45.6M128 19.8V45.8" stroke-opacity=".65" stroke-width="1.3"/>
+<path class="cl-fade" d="M150 89H276" stroke-opacity=".65" stroke-width="1.6"/>
+<circle class="cl-wheel" cx="118" cy="80" r="16" fill="{NAVY}" stroke-width="2"/>
+<circle class="cl-fade" cx="118" cy="80" r="5.5" stroke-opacity=".65" stroke-width="1.3"/>
+<circle class="cl-wheel" cx="306" cy="80" r="16" fill="{NAVY}" stroke-width="2"/>
+<circle class="cl-fade" cx="306" cy="80" r="5.5" stroke-opacity=".65" stroke-width="1.3"/>
+<path class="cl-glint" d="M63 58L67 22C68 16 72 13 78 13L252 12C258 12 262 14 266 18L294 44C296 46 299 47 303 47L352 49C358 49 362 52 363 57" stroke="#fff" stroke-width="3" filter="url(#{i}soft)"/>
+<path class="cl-beam" d="M368 54L418 51" stroke="url(#{i}bg)" stroke-width="3"/>
 </g>
-<g transform="translate(361 54)"><g class="{p}star"><circle r="10" fill="{ICE}" opacity=".5" filter="url(#{p}glow)"/>
+<g transform="translate(361 54)"><g class="cl-star"><circle r="10" fill="{ICE}" opacity=".5" filter="url(#{i}glow)"/>
 <path d="M0-9C.81-2.52 2.52-.81 9 0 2.52.81.81 2.52 0 9-.81 2.52-2.52.81-9 0-2.52-.81-.81-2.52 0-9Z" fill="#fff"/></g></g>"""
 
 
@@ -82,18 +82,26 @@ def layout() -> dict:
             "tag_w": tag_w}
 
 
-def lockup(cls: str = "lockup", animated: bool = False, pad: float = 8) -> str:
-    """Full logo: wordmark, SUV, rules and tagline. `animated` draws it once when scrolled into view."""
+MODES = {"static": "", "once": " brand-art brand-anim", "loop": " brand-art brand-loop"}
+
+
+def lockup(cls: str = "lockup", mode: str = "static", ids: str = "cl-", pad: float = 8) -> str:
+    """Full logo: wordmark, SUV, rules and tagline.
+
+    mode "static": the finished logo. "once": draws itself once when scrolled into view (footer).
+    "loop": the design's own 7-second cycle — draw, hold, fade, redraw (home page hero).
+    `ids` must differ for each logo on the same page.
+    """
     L, w, t = layout(), art("wordmark"), art("tagline")
-    p = "cl-"
-    a = (lambda c: f' class="{p}{c}"') if animated else (lambda c: "")
+    animated = mode != "static"
+    a = (lambda c: f' class="cl-{c}"') if animated else (lambda c: "")
     x0, y0, width, height = -pad, L["top"] - pad, L["width"] + 2 * pad, L["height"] + 2 * pad
     sx, sy, s = L["suv"]
     right = L["rule"] + 28 + L["tag_w"]
-    suv = _suv(p) if animated else re.sub(r' class="cl-[a-z]+"', "", _suv(p))
+    suv = _suv(ids) if animated else re.sub(r' class="cl-[a-z]+"', "", _suv(ids))
     if not animated:
         suv = re.sub(r'<path d="M63 58L67 22[^>]*/>\n', "", suv)    # the glint only exists while animating
-    return (f'<svg class="{cls}{" brand-anim" if animated else ""}" viewBox="{x0:.2f} {y0:.2f} {width:.2f} {height:.2f}" '
+    return (f'<svg class="{cls}{MODES[mode]}" viewBox="{x0:.2f} {y0:.2f} {width:.2f} {height:.2f}" '
             f'role="img" aria-label="{e(data.BRAND["name"])}">'
             f'<g transform="translate({L["word_x"]:.2f} {L["word_base"]:.2f})"><g{a("word")}><path fill="{CREAM}" d="{w["d"]}"/></g></g>'
             f'<g transform="translate({sx} {sy}) scale({s})">{suv}</g>'

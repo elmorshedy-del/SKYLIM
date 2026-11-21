@@ -389,6 +389,17 @@
     }, { threshold: 0.5 });
     $$('.brand-anim').forEach(function (el) { el.classList.add('pre'); bio.observe(el); });
   }
+  /* the hero logo loops like the design and rests while out of view; the header wordmark takes over
+     only once it has scrolled away, so the name never appears twice on screen */
+  if ('IntersectionObserver' in window) {
+    $$('.brand-loop').forEach(function (el) {
+      document.body.classList.add('has-hero-logo');
+      new IntersectionObserver(function (es) {
+        var seen = es[0].isIntersecting;
+        el.classList.toggle('off', !seen); document.body.classList.toggle('logo-away', !seen);
+      }, { rootMargin: '-64px 0px 0px 0px' }).observe(el);
+    });
+  }
   if ('IntersectionObserver' in window) {
     if (mbar && quoteBox) new IntersectionObserver(function (es) { mbar.classList.toggle('show', !es[0].isIntersecting); }).observe(quoteBox);
     if (!reduce) {

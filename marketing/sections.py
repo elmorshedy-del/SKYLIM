@@ -124,6 +124,7 @@ def hero() -> str:
 <section class="hero" aria-labelledby="hero-h">
   <div class="wrap hero-in">
     <div class="hero-copy">
+      <div class="hero-logo">{brand.lockup(mode="loop", ids="ch-", pad=0)}</div>
       <h1 id="hero-h"><span class="eyebrow">Chauffeur service · New York City &amp; New Jersey</span>Arrive composed.</h1>
       <p class="lede">A Cadillac Escalade and a professional chauffeur for Newark, JFK and LaGuardia, Teterboro's
         private terminals, meetings across Manhattan and evenings out. All-inclusive pricing, reserved in under a
@@ -382,7 +383,7 @@ def footer(local: frozenset = HOME_IDS) -> str:
 <footer class="foot">
   <div class="wrap">
     <div class="foot-top">
-      <a class="foot-logo" href="/" aria-label="{e(b['name'])} home">{brand.lockup(animated=True)}</a>
+      <a class="foot-logo" href="/" aria-label="{e(b['name'])} home">{brand.lockup(mode="once", ids="cf-")}</a>
       <nav aria-label="Footer"><a href="{_to('services', local)}">Services</a><a href="{_to('pricing', local)}">Pricing</a>
 <a href="{_to('bespoke', local)}">Bespoke</a>
         <a href="{_to('faq', local)}">FAQ</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/accessibility">Accessibility</a></nav>

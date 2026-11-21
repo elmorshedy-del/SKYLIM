@@ -372,13 +372,14 @@ body.sheet-open{overflow:hidden}
 .foot-links a{color:var(--g400);text-decoration:none;display:inline-flex;align-items:center;min-height:44px}
 .foot-links a:hover{color:var(--cream)}
 
-/* the logo draws itself once when it scrolls into view (site.js adds .pre, then .play) */
-.brand-anim .cl-glint{opacity:0;stroke-dasharray:50 900}
-.brand-anim .cl-ground{stroke-dasharray:500}.brand-anim .cl-body{stroke-dasharray:900}
-.brand-anim .cl-window{stroke-dasharray:600}.brand-anim .cl-wheel{stroke-dasharray:110}
-.brand-anim :is(.cl-star,.cl-beam,.cl-rulel,.cl-ruler){transform-box:fill-box}
-.brand-anim .cl-star{transform-origin:center}.brand-anim .cl-beam,.brand-anim .cl-ruler{transform-origin:left center}
-.brand-anim .cl-rulel{transform-origin:right center}
+/* animated logo. Footer (.brand-anim): draws once when scrolled into view (site.js adds .pre, then
+   .play). Home hero (.brand-loop): the design's own 7 s loop, paused off-screen (.off). */
+.brand-art .cl-glint{opacity:0;stroke-dasharray:50 900}
+.brand-art .cl-ground{stroke-dasharray:500}.brand-art .cl-body{stroke-dasharray:900}
+.brand-art .cl-window{stroke-dasharray:600}.brand-art .cl-wheel{stroke-dasharray:110}
+.brand-art :is(.cl-star,.cl-beam,.cl-rulel,.cl-ruler){transform-box:fill-box}
+.brand-art .cl-star{transform-origin:center}.brand-art .cl-beam,.brand-art .cl-ruler{transform-origin:left center}
+.brand-art .cl-rulel{transform-origin:right center}
 .brand-anim:is(.pre,.play) .cl-word{animation:cl-word 6.3s cubic-bezier(.45,.05,.55,.95) both}
 .brand-anim:is(.pre,.play) .cl-ground{animation:cl-ground 6.3s cubic-bezier(.65,0,.35,1) both}
 .brand-anim:is(.pre,.play) .cl-body{animation:cl-body 6.3s cubic-bezier(.65,0,.35,1) both}
@@ -402,4 +403,31 @@ body.sheet-open{overflow:hidden}
 @keyframes cl-glint{0%,78%{stroke-dashoffset:50;opacity:0}80%{stroke-dashoffset:30;opacity:1}96%{stroke-dashoffset:-400;opacity:1}98%,100%{stroke-dashoffset:-400;opacity:0}}
 @keyframes cl-rule{0%,67%{transform:scaleX(0)}80%,100%{transform:scaleX(1)}}
 @keyframes cl-tag{0%,69%{opacity:0;transform:translateY(6px);filter:blur(3px)}84%,100%{opacity:1;transform:none;filter:none}}
-@media (prefers-reduced-motion:reduce){.brand-anim *{animation:none!important}}
+.brand-loop .cl-word{animation:cl-lword 7s cubic-bezier(.45,.05,.55,.95) infinite}
+.brand-loop .cl-ground{animation:cl-lground 7s cubic-bezier(.65,0,.35,1) infinite}
+.brand-loop .cl-body{animation:cl-lbody 7s cubic-bezier(.65,0,.35,1) infinite}
+.brand-loop .cl-window{animation:cl-lwindow 7s cubic-bezier(.65,0,.35,1) infinite}
+.brand-loop .cl-wheel{animation:cl-lwheel 7s cubic-bezier(.65,0,.35,1) infinite}
+.brand-loop .cl-fade{animation:cl-lfade 7s ease-out infinite}
+.brand-loop .cl-star{animation:cl-lstar 7s ease-out infinite}
+.brand-loop .cl-beam{animation:cl-lbeam 7s cubic-bezier(.22,1,.36,1) infinite}
+.brand-loop .cl-glint{animation:cl-lglint 7s ease-in-out infinite}
+.brand-loop :is(.cl-rulel,.cl-ruler){animation:cl-lrule 7s cubic-bezier(.22,1,.36,1) infinite}
+.brand-loop .cl-tag{animation:cl-ltag 7s cubic-bezier(.22,1,.36,1) infinite}
+.brand-loop.off *{animation-play-state:paused!important}
+@keyframes cl-lword{0%{clip-path:inset(0 100% 0 0);opacity:1}30%,90%{clip-path:inset(0 0 0 0);opacity:1}100%{clip-path:inset(0 0 0 0);opacity:0}}
+@keyframes cl-lground{0%,22%{stroke-dashoffset:500;opacity:1}44%,90%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes cl-lbody{0%,24%{stroke-dashoffset:900;opacity:1}54%,90%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes cl-lwindow{0%,36%{stroke-dashoffset:600;opacity:1}56%,90%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes cl-lwheel{0%,40%{stroke-dashoffset:110;opacity:1}54%,90%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes cl-lfade{0%,50%{opacity:0}58%,90%{opacity:1}100%{opacity:0}}
+@keyframes cl-lstar{0%,54%{opacity:0;transform:scale(.2) rotate(-90deg)}60%{opacity:1;transform:scale(1.8) rotate(0)}67%,77%{opacity:1;transform:scale(1)}80%{opacity:1;transform:scale(1.3)}83%,90%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes cl-lbeam{0%,56%{opacity:1;transform:scaleX(0)}64%,90%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1)}}
+@keyframes cl-lglint{0%,70%{stroke-dashoffset:50;opacity:0}72%{stroke-dashoffset:30;opacity:1}86%{stroke-dashoffset:-400;opacity:1}88%,100%{stroke-dashoffset:-400;opacity:0}}
+@keyframes cl-lrule{0%,60%{opacity:1;transform:scaleX(0)}72%,90%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1)}}
+@keyframes cl-ltag{0%,62%{opacity:0;transform:translateY(6px);filter:blur(3px)}76%,90%{opacity:1;transform:none;filter:none}100%{opacity:0;transform:none;filter:none}}
+.hero-logo{width:clamp(200px,22vw,280px);margin:0 0 32px}
+.hero-logo svg{display:block;width:100%;height:auto}
+.has-hero-logo .nav .brand{opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s}
+.has-hero-logo.logo-away .nav .brand{opacity:1;visibility:visible}
+@media (prefers-reduced-motion:reduce){.brand-art *{animation:none!important}}
