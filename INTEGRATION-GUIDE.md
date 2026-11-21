@@ -41,18 +41,26 @@ accepts no connections from the public internet. Health check: `/healthz`.
 
 ## 3. Stripe
 
-1. Dashboard → Settings → Payment methods: enable **Cards, Apple Pay, Google Pay, Link**. Request **Affirm,
-   Klarna, Afterpay** (eligibility is reviewed by Stripe) and the **PayPal** invite. No code change is needed —
-   Checkout uses dynamic payment methods. Keep `PAYMENT_METHODS_DISPLAY` in sync with what is on.
-2. Developers → Webhooks → endpoint `https://<domain>/api/webhooks/stripe`, events:
-   `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-   `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded`.
-   Copy the signing secret to `STRIPE_WEBHOOK_SECRET`.
-3. Use a restricted key (`rk_live_…`) with write access to Checkout Sessions and Refunds only.
-4. Test in staging with Stripe test cards: success `4242…`, decline `4000 0000 0000 0002`,
-   3-D Secure `4000 0025 0000 3155`; cancel at Checkout; replay a webhook from the Dashboard (must say
-   `duplicate`/`already_paid`, never double-confirm).
-5. Set `PAYMENTS_ENABLED=true`. In production, payment stays off until every launch gate in `/admin` passes.
+The site connects itself: set **`STRIPE_SECRET_KEY`** (and `PAYMENTS_ENABLED=true`) in Render → Environment.
+Within a minute of start-up it registers its own webhook endpoint at `https://<domain>/api/webhooks/stripe`
+for the five events it handles, stores the signing secret encrypted, and `/admin` shows "Stripe webhook
+connected". (`STRIPE_WEBHOOK_SECRET` still works as a manual override.) A live key is only used in
+production, after every required launch gate passes; staging accepts test keys only.
+
+1. **Key**: a restricted key (`rk_live_…`) with write access to Checkout Sessions, Refunds and Webhook
+   Endpoints (optionally Payment Method Configurations). Rotate it if it is ever exposed.
+2. **Payment methods** (Dashboard → Settings → Payment methods; Checkout shows whatever is on, no code change):
+   card, Apple Pay, Google Pay, Link, Klarna, Amazon Pay and Cash App Pay are on. Affirm awaits Stripe's
+   eligibility review. **PayPal** must be requested there. Delayed bank debits are excluded (short holds).
+3. **Managed Payments** is off for every Checkout Session the site creates (`managed_payments.enabled=false`):
+   it is Stripe's merchant-of-record service for digital products, adds a fee and forbids custom text. Turn it
+   off as the account default too: Dashboard → Settings → Managed payments.
+4. **What clients see**: Stripe's page branded "Celeste Luxury Limo" (navy, logo), the free-cancellation note
+   beside the Pay button, the trip reference (`CL-…`) on their card statement, and Stripe's emailed receipt.
+5. **Statement name**: Dashboard → Settings → Public details → set the statement descriptor to `CELESTE`
+   (the trip reference is appended automatically).
+6. **Test**: before going live, make one real booking, then refund it from `/admin`; replay its webhook from
+   the Dashboard — the site must answer `duplicate`/`already_paid` and never confirm twice.
 
 ## 4. Live location (Traccar Client)
 

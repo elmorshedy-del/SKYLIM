@@ -23,7 +23,7 @@ from . import db
 from .config import get_settings
 from .domain.status import TransitionError
 from .errors import AppError
-from .services import analytics, bookings, notifications, tracking
+from .services import analytics, bookings, notifications, stripe_setup, tracking
 from .web import admin, integrations, public_api, site, trips
 
 log = logging.getLogger("celeste")
@@ -48,6 +48,7 @@ def sweep_once(now: datetime | None = None) -> None:
         tracking.purge(conn, now, s.tracking_retention_hours)
     notifications.deliver_pending(db.tx)
     analytics.deliver_pending(db.tx)
+    stripe_setup.maintain()
 
 
 async def _sweeper() -> None:
@@ -65,6 +66,10 @@ async def lifespan(app: FastAPI):
         applied = await asyncio.to_thread(db.migrate)
         if applied:
             log.info("applied migrations: %s", ", ".join(applied))
+    try:
+        await asyncio.to_thread(stripe_setup.load)       # webhooks verify from the first request
+    except Exception:                                    # never block start-up; the sweep connects later
+        log.exception("could not load the stored Stripe webhook secret")
     task = asyncio.create_task(_sweeper()) if os.environ.get("BACKGROUND_JOBS", "true") == "true" else None
     yield
     if task:

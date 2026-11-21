@@ -48,7 +48,7 @@ get_settings.cache_clear()
 NOW = datetime(2026, 11, 20, 15, 0, tzinfo=timezone.utc)   # Fri Nov 20 2026, 10:00 ET
 
 DATA_TABLES = ["positions", "outbox", "analytics_outbox", "stripe_events", "payments", "reservations",
-               "booking_events", "bookings", "quotes", "customers", "inquiries"]
+               "booking_events", "bookings", "quotes", "customers", "inquiries", "app_secrets"]
 
 
 @pytest.fixture(scope="session", autouse=True)

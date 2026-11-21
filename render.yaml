@@ -44,13 +44,13 @@ services:
       - key: TRUST_PROXY_HEADERS
         value: "true"
       - key: PAYMENTS_ENABLED
-        value: "false"
+        value: "true"                  # takes effect only once STRIPE_SECRET_KEY is set (staging: test keys only)
       - key: TRACKING_ENABLED
         value: "false"
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
-        sync: false
+        sync: false                    # optional: the site registers its own webhook and keeps the secret
       - key: POSTMARK_SERVER_TOKEN
         sync: false
       - key: EMAIL_FROM

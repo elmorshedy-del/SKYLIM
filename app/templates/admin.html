@@ -30,9 +30,10 @@
 {% if not payments_live %}
 <section class="card">
   <p class="label">Launch gates</p>
-  <p class="small muted">Online payment stays off until every gate passes in production. Requests are still collected.</p>
+  <p class="small muted">Online payment stays off until every required gate passes in production (○ = recommended,
+    not required). Requests are still collected.</p>
   {% for name, ok, detail in gates %}
-    <div class="gate"><b>{{ '✓' if ok else '✗' }}</b><span>{{ name }}{% if not ok %} — <span class="muted">{{ detail }}</span>{% endif %}</span></div>
+    <div class="gate"><b>{{ '✓' if ok else ('○' if name in recommended_gates else '✗') }}</b><span>{{ name }}{% if not ok %} — <span class="muted">{{ detail }}</span>{% endif %}</span></div>
   {% endfor %}
 </section>
 {% endif %}

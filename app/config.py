@@ -169,25 +169,50 @@ def launch_gates(s: Settings | None = None) -> list[tuple[str, bool, str]]:
         ("Cancellation policy approved", bool(data.POLICY.get("approved")), data.POLICY["version"]),
         ("Legal pages approved", s.legal_pages_approved, "LEGAL_PAGES_APPROVED"),
         ("Stripe live key configured", s.stripe_live, "STRIPE_SECRET_KEY must be sk_live_/rk_live_"),
-        ("Stripe webhook secret configured", s.stripe_webhook_secret.startswith("whsec_"), "STRIPE_WEBHOOK_SECRET"),
+        ("Stripe webhook connected", webhook_secret(s).startswith("whsec_"),
+         "Automatic a minute after STRIPE_SECRET_KEY is set (or set STRIPE_WEBHOOK_SECRET by hand)"),
         ("HTTPS public URL", s.public_base_url.startswith("https://"), s.public_base_url),
         ("Public URL is the canonical domain",
          (urlparse(s.public_base_url).hostname or "").removeprefix("www.") == data.BRAND["domain"].removeprefix("www."),
          f"PUBLIC_BASE_URL must be https://{data.BRAND['domain']} — canonical tags and the sitemap use it"),
         ("Admin password set", s.admin_password_hash.startswith("scrypt$"), "ADMIN_PASSWORD_HASH"),
         ("Secret key set", len(s.secret_key) >= 32 and s.secret_key != "dev-only-not-secret", "SECRET_KEY >= 32 chars"),
-        ("Transactional email configured", bool(s.postmark_token and s.email_from), "POSTMARK_SERVER_TOKEN / EMAIL_FROM"),
+        ("Transactional email configured", bool(s.postmark_token and s.email_from),
+         "Recommended, not required: until POSTMARK_SERVER_TOKEN / EMAIL_FROM are set, clients get Stripe's "
+         "receipt and their on-screen trip page, and trip emails wait in /admin to be sent by hand"),
     ]
     return [(n, bool(ok), d) for (n, ok, d) in gates]
+
+
+# Webhook signing secrets the site provisioned itself (services/stripe_setup.py), one per key mode and URL.
+_WEBHOOK_SECRETS: dict[str, str] = {}
+
+
+def webhook_secret_slot(s: Settings) -> str:
+    return ("live" if s.stripe_live else "test") + ":" + s.public_base_url.rstrip("/")
+
+
+def register_webhook_secret(s: Settings, secret: str) -> None:
+    _WEBHOOK_SECRETS[webhook_secret_slot(s)] = secret
+
+
+def webhook_secret(s: Settings | None = None) -> str:
+    """STRIPE_WEBHOOK_SECRET if set, otherwise the secret the site obtained when it registered its endpoint."""
+    s = s or get_settings()
+    return s.stripe_webhook_secret or _WEBHOOK_SECRETS.get(webhook_secret_slot(s), "")
+
+
+# Shown in /admin but not required to take payment: without them the site degrades gracefully.
+RECOMMENDED_GATES = frozenset({"Transactional email configured"})
 
 
 def payments_live(s: Settings | None = None) -> bool:
     """Online payment is offered only when explicitly enabled, keys exist, and —
     in production — every launch gate passes. Staging must use test keys."""
     s = s or get_settings()
-    if not s.payments_enabled or not s.stripe_secret_key or not s.stripe_webhook_secret:
+    if not s.payments_enabled or not s.stripe_secret_key or not webhook_secret(s):
         return False
     if s.is_production:
-        return all(ok for (_, ok, _) in launch_gates(s))
+        return all(ok for (name, ok, _) in launch_gates(s) if name not in RECOMMENDED_GATES)
     # Outside production a live key is refused outright: staging can never take real money.
     return not s.stripe_live

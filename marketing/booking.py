@@ -69,7 +69,8 @@ def dialog() -> str:
       <dl class="review" id="book-review"></dl>
       <p class="fine" id="book-terms-note">{e(data.POLICY['summary'])}</p>
       <label class="check"><input type="checkbox" name="accept" required> I agree to the <a href="/terms" target="_blank" rel="noopener">terms</a></label>
-      <p class="fine secure">{icon('lock', 14)} Secure payment by Stripe — Apple Pay, Google Pay, Link or card.</p>
+      <p class="fine secure">{icon('lock', 14)} Secure payment by Stripe — Apple Pay, Google Pay, Link or card.
+        Your card statement shows your trip reference, and Stripe emails your receipt.</p>
     </section>
 
     <section class="pane done" data-pane="4" hidden>

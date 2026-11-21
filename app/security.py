@@ -44,9 +44,10 @@ def hash_device_id(device_id: str) -> str:
 
 
 def booking_ref() -> str:
-    """Human-friendly reference, e.g. MR-7KQ2X9 (no 0/O/1/I to avoid misreading)."""
+    """Human-friendly reference, e.g. CL-7KQ2X9 (no 0/O/1/I to avoid misreading). Printed on the
+    client's card statement, so it must stay within Stripe's descriptor rules (letters, digits, hyphen)."""
     alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-    return "MR-" + "".join(secrets.choice(alphabet) for _ in range(6))
+    return "CL-" + "".join(secrets.choice(alphabet) for _ in range(6))
 
 
 # --------------------------------------------------------------- passwords

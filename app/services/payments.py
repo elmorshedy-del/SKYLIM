@@ -23,7 +23,7 @@ from typing import Protocol
 
 import stripe
 
-from ..config import Settings, get_settings, payments_live
+from ..config import Settings, get_settings, payments_live, webhook_secret
 from ..db import tx
 from ..domain.status import Status
 from ..errors import Conflict, Forbidden, Unavailable
@@ -46,8 +46,18 @@ class StripeGateway:
         self._client = stripe.StripeClient(secret_key)
 
     def create_checkout(self, params: dict, idempotency_key: str) -> dict:
-        s = self._client.v1.checkout.sessions.create(params=params,
-                                                     options={"idempotency_key": idempotency_key})
+        try:
+            s = self._client.v1.checkout.sessions.create(params=params,
+                                                         options={"idempotency_key": idempotency_key})
+        except stripe.InvalidRequestError as err:
+            # Branding is cosmetic: if Stripe rejects it, take the payment unbranded. A rejected request
+            # stores no idempotent result, so the same key is safe to reuse.
+            if not str(getattr(err, "param", "") or "").startswith("branding_settings"):
+                raise
+            log.warning("checkout branding rejected (%s); continuing without it", err.user_message)
+            params = {k: v for k, v in params.items() if k != "branding_settings"}
+            s = self._client.v1.checkout.sessions.create(params=params,
+                                                         options={"idempotency_key": idempotency_key})
         return {"id": s.id, "url": s.url, "livemode": bool(s.livemode)}
 
     def refund(self, payment_intent_id: str, amount_cents: int, idempotency_key: str) -> dict:
@@ -100,7 +110,24 @@ def checkout_params(b: dict, *, expires_at: datetime, s: Settings) -> dict:
         }],
         "metadata": {"booking_id": str(b["id"]), "booking_ref": b["ref"]},
         "payment_intent_data": {"description": f"{data.BRAND['short']} trip {b['ref']}",
+                                "receipt_email": b["contact_email"],      # Stripe's receipt, always sent
+                                "statement_descriptor_suffix": b["ref"],  # the card statement names the trip
                                 "metadata": {"booking_id": str(b["id"]), "booking_ref": b["ref"]}},
+        "customer_creation": "always",          # one record per client: receipts, repeat bookings, disputes
+        # Standard processing, the business as merchant of record. Stripe Managed Payments (on by default for
+        # some new accounts) is a merchant-of-record service for digital products, not chauffeured travel;
+        # it also forbids custom_text and adds a fee.
+        "managed_payments": {"enabled": False},
+        "custom_text": {
+            "submit": {"message": f"Free cancellation up to {data.POLICY['free_cancel_hours']} hours before "
+                                  "pickup. Your price includes tolls, congestion charges and gratuity — "
+                                  "nothing more is charged."},
+            "after_submit": {"message": "You will return to your private trip page with your chauffeur's "
+                                        "details and live position on the day."},
+        },
+        "branding_settings": {"display_name": data.BRAND["name"], "background_color": "#0A0E1C",
+                              "button_color": "#0A0E1C", "border_style": "rounded", "font_family": "inter",
+                              "icon": {"type": "url", "url": f"{base}/static/logo.png"}},
         "expires_at": int(expires_at.timestamp()),
         "success_url": f"{base}/trip/{token}?checkout=returned",
         "cancel_url": f"{base}/trip/{token}?checkout=cancelled",
@@ -163,10 +190,11 @@ def start_checkout(token: str, *, now: datetime | None = None, s: Settings | Non
 # ------------------------------------------------------------------ webhook
 def verify_and_parse(raw_body: bytes, signature: str | None, s: Settings | None = None) -> dict:
     s = s or get_settings()
-    if not s.stripe_webhook_secret:
+    secret = webhook_secret(s)
+    if not secret:
         raise Unavailable("Webhook secret not configured.")
     try:
-        stripe.WebhookSignature.verify_header(raw_body.decode("utf-8"), signature, s.stripe_webhook_secret,
+        stripe.WebhookSignature.verify_header(raw_body.decode("utf-8"), signature, secret,
                                               tolerance=300)
     except (stripe.SignatureVerificationError, ValueError, UnicodeDecodeError):
         raise Forbidden("Invalid Stripe signature.")
