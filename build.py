@@ -4,8 +4,9 @@
     python3 build.py
 
 Writes index.html, pages/**.html (search landing pages), pricing.md, robots.txt,
-sitemap.xml and seo_lastmod.json. Never hand-edit those outputs: change data.py
-(facts, rates), landing_pages.py (landing copy) or marketing/ (layout), then rebuild.
+sitemap.xml, seo_lastmod.json and static/favicon.svg (from the logo). Never hand-edit
+those outputs: change data.py (facts, rates), landing_pages.py (landing copy) or
+marketing/ (layout), then rebuild.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from pathlib import Path
 
 import data
 import landing_pages
-from marketing import page, seo
+from marketing import brand, page, seo
 
 ROOT = Path(__file__).resolve().parent
 LEGAL = ["terms", "privacy", "accessibility"]
@@ -36,7 +37,8 @@ def main() -> int:
     for p in landing_pages.PAGES:
         pages[p["path"]] = (page.landing_file(p), page.render_landing(p))
     outputs = {name: html for name, html in pages.values()}
-    outputs.update({"pricing.md": seo.pricing_md(), "robots.txt": seo.robots_txt()})
+    outputs.update({"pricing.md": seo.pricing_md(), "robots.txt": seo.robots_txt(),
+                    "static/favicon.svg": brand.monogram_svg()})
 
     # sitemap dates follow content, not the build date
     contents = {path: html for path, (_, html) in pages.items()}

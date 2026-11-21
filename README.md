@@ -1,4 +1,4 @@
-# Meridian — private chauffeur service platform
+# Celeste Luxury Limo — private chauffeur service platform
 
 Website, instant reservations, Stripe payments, live trip tracking and an owner dashboard for a premium
 Cadillac Escalade chauffeur service in New York and New Jersey.
@@ -18,4 +18,5 @@ pytest
 ```
 
 Edit business facts in `data.py` and landing-page copy in `landing_pages.py`, then `python3 build.py`.
+The logo lives in `static/brand/` and `marketing/brand.py` (see docs/ARCHITECTURE.md).
 Never hand-edit `index.html` or `pages/`.

@@ -10,6 +10,7 @@ from html import escape as e
 
 import data
 import landing_pages
+from . import brand
 from .icons import AMENITY_ICONS, FEATURE_ICONS, cabin_plan, icon
 from .seo import journey_price
 
@@ -34,7 +35,7 @@ def header(local: frozenset = HOME_IDS) -> str:
     return f"""
 <header class="nav" id="top">
   <div class="wrap nav-in">
-    <a class="brand" href="/" aria-label="{e(b['name'])} home"><span class="mark" aria-hidden="true">{e(b['short'][:1])}</span>{e(b['short'])}</a>
+    <a class="brand" href="/" aria-label="{e(b['name'])} home">{brand.wordmark()}</a>
     <nav class="links" aria-label="Primary">
       <a href="{_to('services', local)}">Services</a><a href="/airport-transfers">Airports</a>
 <a href="{_to('cabin', local)}">The Escalade</a><a href="{_to('pricing', local)}">Pricing</a><a href="{_to('faq', local)}">FAQ</a>
@@ -381,7 +382,7 @@ def footer(local: frozenset = HOME_IDS) -> str:
 <footer class="foot">
   <div class="wrap">
     <div class="foot-top">
-      <a class="brand" href="/"><span class="mark" aria-hidden="true">{e(b['short'][:1])}</span>{e(b['short'])}</a>
+      <a class="foot-logo" href="/" aria-label="{e(b['name'])} home">{brand.lockup(animated=True)}</a>
       <nav aria-label="Footer"><a href="{_to('services', local)}">Services</a><a href="{_to('pricing', local)}">Pricing</a>
 <a href="{_to('bespoke', local)}">Bespoke</a>
         <a href="{_to('faq', local)}">FAQ</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/accessibility">Accessibility</a></nav>

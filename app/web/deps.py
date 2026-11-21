@@ -10,14 +10,16 @@ from urllib.parse import urlparse
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
 import data
+from marketing.brand import wordmark
 from ..config import LOCAL_TZ, get_settings
 from ..domain.status import LABELS, Status
 from ..security import ADMIN_COOKIE, read_admin_session
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
-TEMPLATES.env.globals.update(brand=data.BRAND, driver=data.DRIVER, vehicle_info=data.VEHICLE,
+TEMPLATES.env.globals.update(brand=data.BRAND, brand_wordmark=Markup(wordmark()), driver=data.DRIVER, vehicle_info=data.VEHICLE,
                              policy=data.POLICY, status_labels={s.value: l for s, l in LABELS.items()})
 TEMPLATES.env.filters["money"] = lambda c: "—" if c is None else f"${c / 100:,.2f}"
 TEMPLATES.env.filters["et"] = lambda d, fmt="%a %b %-d · %-I:%M %p": d.astimezone(LOCAL_TZ).strftime(fmt) if d else "—"

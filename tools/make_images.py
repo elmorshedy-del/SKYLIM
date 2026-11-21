@@ -4,8 +4,9 @@
     python3 tools/make_images.py
 
 Writes static/og.png (1200x630, link previews) and static/logo.png (512x512, the
-Organization logo Google may show; it asks for at least 112x112). Re-run after any
-change to the brand name. Uses the Playwright Chromium already installed on the machine.
+Organization logo Google may show; it asks for at least 112x112), both from the logo in
+marketing/brand.py. Re-run after any change to the logo. Uses the Node Playwright and
+Chromium already installed on the machine.
 """
 from __future__ import annotations
 
@@ -19,31 +20,26 @@ import data  # noqa: E402
 
 FONT = (ROOT / "static/fonts/inter-tight-latin-wght-normal.woff2").as_uri()
 BASE = f"""<style>@font-face{{font-family:I;src:url({FONT}) format('woff2');font-weight:100 900}}
-*{{margin:0;box-sizing:border-box}}body{{font-family:I,sans-serif;background:#000;color:#fff}}</style>"""
+*{{margin:0;box-sizing:border-box}}body{{font-family:I,sans-serif;background:#0A0E1C;color:#F4F1EA}}
+.lk svg{{display:block;width:100%;height:auto}}</style>"""
 
 
 def og_html() -> str:
-    b = data.BRAND
-    return BASE + f"""<div style="width:1200px;height:630px;padding:72px 80px;display:flex;flex-direction:column;
-  justify-content:space-between;background:radial-gradient(120% 90% at 85% 10%,#1f1f1f 0,#000 60%)">
-  <div style="display:flex;align-items:center;gap:18px;font-size:34px;font-weight:700;letter-spacing:-.02em">
-    <span style="width:60px;height:60px;border-radius:14px;background:#fff;color:#000;display:grid;place-items:center;
-      font-size:34px;font-weight:800">{e(b['short'][:1])}</span>{e(b['short'])}</div>
-  <div>
-    <div style="font-size:22px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#AFAFAF;margin-bottom:24px">
-      Chauffeur service · New York City &amp; New Jersey</div>
-    <div style="font-size:112px;font-weight:800;letter-spacing:-.05em;line-height:.95">Arrive composed.</div>
-  </div>
-  <div style="display:flex;gap:36px;font-size:24px;color:#CBCBCB">
-    <span>Cadillac Escalade</span><span style="color:#C8B48A">·</span><span>Captain's chairs</span>
-    <span style="color:#C8B48A">·</span><span>Onboard Wi-Fi</span><span style="color:#C8B48A">·</span><span>All-inclusive</span>
-  </div>
+    """Link preview: the logo, centred on the logo's navy, with one line of what we do."""
+    from marketing.brand import lockup
+    return BASE + f"""<div style="width:1200px;height:630px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:40px;background:radial-gradient(90% 80% at 50% 40%,#141a2e 0,#0A0E1C 70%)">
+  <div class="lk" style="width:430px">{lockup(cls="og", pad=0)}</div>
+  <div style="font-size:21px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#AFAFAF">
+    Chauffeur service · New York City &amp; New Jersey</div>
 </div>"""
 
 
 def logo_html() -> str:
-    return BASE + f"""<div style="width:512px;height:512px;background:#000;display:grid;place-items:center;
-  font-size:300px;font-weight:800;letter-spacing:-.04em">{e(data.BRAND['short'][:1])}</div>"""
+    """Organization logo for Google: the full lockup on its own navy, so it reads on any background."""
+    from marketing.brand import lockup
+    return BASE + f"""<div style="width:512px;height:512px;display:grid;place-items:center;background:#0A0E1C">
+  <div class="lk" style="width:384px">{lockup(cls="logo", pad=0)}</div></div>"""
 
 
 NODE = """

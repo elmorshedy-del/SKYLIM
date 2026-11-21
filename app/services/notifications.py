@@ -22,7 +22,7 @@ import data
 from ..config import LOCAL_TZ, Settings, get_settings
 from ..security import trip_token
 
-log = logging.getLogger("meridian.email")
+log = logging.getLogger("celeste.email")
 POSTMARK_URL = "https://api.postmarkapp.com/email"
 
 

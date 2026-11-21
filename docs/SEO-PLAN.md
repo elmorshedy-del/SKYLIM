@@ -8,7 +8,7 @@ missing, it says so. Keyword research: owner's *Search demand and SEO launch pla
 
 | Google says (Search Central) | What the site does |
 |---|---|
-| A good title is "unique to the page, clear and concise, and accurately describes the contents"; avoid keyword stuffing; "brand your titles concisely" with a delimiter — *SEO Starter Guide*, *Influencing title links* | One distinct title per page, search phrase first, brand as a short ` \| Meridian` suffix. Tested: unique, 30–70 chars |
+| A good title is "unique to the page, clear and concise, and accurately describes the contents"; avoid keyword stuffing; "brand your titles concisely" with a delimiter — *SEO Starter Guide*, *Influencing title links* | One distinct title per page, search phrase first, brand as a short ` \| Celeste` suffix. Tested: unique, 30–70 chars |
 | Google uses "the main visual title, heading elements" for title links; make the main title "the first visible `<h1>`" — *Influencing title links* | Exactly one H1 per page, containing the page's search phrase. Home: the H1's small line reads "Chauffeur service · New York City & New Jersey" above the large brand line "Arrive composed." |
 | Meta descriptions: "unique to one particular page"; "long strings of keywords… are less likely to be displayed" — *Meta descriptions* | A written summary per page, 90–170 chars, with real facts (met inside, flight followed, tolls and gratuity included) |
 | Keyword stuffing includes "blocks of text that list cities and regions" and "repeating the same words… so often that it sounds unnatural" — *Spam policies* | No city lists. Each page's phrase appears in title, H1, description and a few natural places; density is tested ≤ 3 % (actual 0.4–2.3 %) |
@@ -59,8 +59,10 @@ Copy and targets live in `landing_pages.py` (`searches` records the volumes; the
 - **At launch:** set the real domain in `data.BRAND["domain"]` and `PUBLIC_BASE_URL` (a launch gate checks they
   match, because canonical tags and the sitemap use it), set `APP_ENV=production`, then in Google Search
   Console: verify the domain, submit `/sitemap.xml`, and request indexing for the eight pages via URL Inspection.
-- Rename-safe: brand name, logo letter and share image all derive from `data.BRAND`
-  (`python3 tools/make_images.py` re-renders `static/og.png` and `static/logo.png`).
+- Brand: **Celeste Luxury Limo** (`data.BRAND`). The name is used verbatim everywhere — Google Business
+  Profile, directories and structured data must match it exactly. The logo is inline outlined SVG (no web-font
+  request); `static/og.png` (link previews) and `static/logo.png` (Organization logo, on its own navy so it reads
+  on Google's white background) are rendered from it by `tools/make_images.py`.
 
 ## 4. Content calendar (only what can be fulfilled)
 
@@ -80,7 +82,7 @@ Rank each new page by demand × booking intent × margin × whether we can fulfi
    Passaic first; add Manhattan and Westchester). Verification takes days — apply now.
 2. **Primary category** is the single strongest local factor (Whitespark 2026): choose the closest of
    *Chauffeur service*, *Limousine service* or *Car service* in the editor.
-3. Name = the real business name only (keyword-stuffed names violate GBP guidelines).
+3. Name = **Celeste Luxury Limo**, exactly — the registered name only (adding keywords violates GBP guidelines).
 4. Name, phone and service area identical everywhere: site footer, `data.BRAND`, GBP, directories.
 5. Services and prices matching the site; at least ten real photos of the Escalade and cabin.
 6. Paste the GBP review link into `data.BRAND["review_url"]` (post-trip review emails start automatically) and

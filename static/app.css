@@ -1,4 +1,4 @@
-/* Meridian app pages (trip, share, admin, policies). Tokens live in tokens.css. */
+/* Celeste app pages (trip, share, admin, policies). Tokens live in tokens.css. */
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
@@ -15,8 +15,8 @@ p{margin:0 0 .85em}
 /* frame */
 .top{background:var(--black);color:var(--white);height:64px;display:flex;align-items:center}
 .top .in{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;letter-spacing:-.02em;font-size:1.1rem}
-.logo-mk{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;background:var(--white);color:var(--black);font-weight:800;font-size:.95rem}
+.logo{display:inline-flex;align-items:center;min-height:44px;text-decoration:none;color:inherit}
+.logo .wm{height:34px;width:auto}
 .wrap{max-width:720px;margin:0 auto;padding:0 20px}
 .wrap.wide{max-width:1200px}
 main{padding:28px 0 72px}
@@ -79,7 +79,7 @@ main{padding:28px 0 72px}
 .btn:hover{background:var(--g200)}
 .btn-primary{background:var(--black);color:var(--white)} .btn-primary:hover{background:var(--g800)}
 @media (prefers-color-scheme:dark){.btn{background:var(--g800);color:#fff}.btn:hover{background:var(--g700)}
-  .btn-primary{background:#fff;color:#000}.btn-primary:hover{background:var(--g100)}}
+  .btn-primary{background:#fff;color:var(--black)}.btn-primary:hover{background:var(--g100)}}
 .btn-danger{color:var(--negative)}
 .btn-full{width:100%} .btn-xl{min-height:60px;font-size:1.125rem}
 .btn[disabled]{opacity:.45;cursor:not-allowed}

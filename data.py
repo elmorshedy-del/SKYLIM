@@ -15,13 +15,14 @@ TRUTH RULES (enforced by app/config.py launch gates before payments go live):
 
 # ----------------------------------------------------------------- business
 BRAND = {
-    "name": "Meridian Chauffeur",            # working name: confirm NJ registration, domain and trademark search
-    "short": "Meridian",
+    "name": "Celeste Luxury Limo",            # the business name (logo: static/brand, tools/make_brand.py)
+    "short": "Celeste",                       # the wordmark; also the title suffix " | Celeste"
+    "tagline": "Luxury Limo",                 # set under the wordmark in the logo
     "descriptor": "Private chauffeur service",
-    "domain": "meridianblackcar.com",         # PLACEHOLDER — the real domain
+    "domain": "celesteluxurylimo.com",        # PLACEHOLDER — the domain you register
     "phone_display": "(201) 555-0100",        # PLACEHOLDER — a real line that is answered or texted back
     "phone_raw": "+12015550100",              # PLACEHOLDER
-    "email": "ride@meridianblackcar.com",     # PLACEHOLDER — the real reservations inbox
+    "email": "reservations@celesteluxurylimo.com",  # PLACEHOLDER — the real reservations inbox
     "base_town": "Essex County, New Jersey",  # PLACEHOLDER — public town shown as a service-area business
     "authority_display": "",                  # e.g. "NJ limousine licence #… · USDOT #…" — only once issued
     "review_url": "",                         # Google Business Profile "Ask for reviews" link (g.page/r/...)
@@ -270,7 +271,8 @@ VOICE = {
     "tagline_alternatives": ["Set before you sit.", "Your time, attended to."],
     "promise": "We would rather decline tonight than be late tomorrow.",
     "tone": "Five-star hospitality: composed, precise, warm, discreet. Short sentences. No exclamation marks. "
-            "Never: cheap, deal, luxury, elevate, VIP, seamless, world-class.",
+            "Never: cheap, deal, luxury, elevate, VIP, seamless, world-class. (The registered name "
+            "Celeste Luxury Limo is the one exception.)",
     "standard": [
         ("A Cadillac Escalade, every time", "Second-row captain's chairs, a panoramic sunroof and onboard Wi-Fi. "
                                             "Never a downgrade."),

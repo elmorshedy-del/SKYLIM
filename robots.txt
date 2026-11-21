@@ -1,4 +1,4 @@
-# Meridian Chauffeur
+# Celeste Luxury Limo
 User-agent: *
 Allow: /
 Disallow: /admin
@@ -20,4 +20,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://meridianblackcar.com/sitemap.xml
+Sitemap: https://celesteluxurylimo.com/sitemap.xml

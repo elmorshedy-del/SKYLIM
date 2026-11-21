@@ -16,7 +16,7 @@ from ..errors import Forbidden, Unavailable
 from ..services import payments, tracking
 from .deps import clock, rate_limit
 
-log = logging.getLogger("meridian.integrations")
+log = logging.getLogger("celeste.integrations")
 router = APIRouter(tags=["integrations"])
 
 

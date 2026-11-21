@@ -38,7 +38,7 @@ def document(head: str, body: str) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#0A0E1C">
 {head}
 <link rel="preload" href="/static/fonts/inter-tight-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>{inline_css()}</style>

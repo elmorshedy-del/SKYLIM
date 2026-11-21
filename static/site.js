@@ -380,6 +380,15 @@
   $$('[data-year]').forEach(function (n) { n.textContent = new Date().getFullYear(); });
   var mbar = $('#mbar'), quoteBox = $('#reserve');
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* the logo draws itself once, the first time it scrolls into view */
+  if ('IntersectionObserver' in window && !reduce) {
+    var bio = new IntersectionObserver(function (es) {
+      es.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.replace('pre', 'play'); bio.unobserve(en.target); }
+      });
+    }, { threshold: 0.5 });
+    $$('.brand-anim').forEach(function (el) { el.classList.add('pre'); bio.observe(el); });
+  }
   if ('IntersectionObserver' in window) {
     if (mbar && quoteBox) new IntersectionObserver(function (es) { mbar.classList.toggle('show', !es[0].isIntersecting); }).observe(quoteBox);
     if (!reduce) {

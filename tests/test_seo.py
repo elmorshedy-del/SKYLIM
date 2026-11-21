@@ -136,7 +136,7 @@ def test_every_advertised_journey_can_be_sold_online():
 
 def test_copy_has_no_unfilled_tokens_or_banned_words(pages):
     for path, (_, d) in pages.items():
-        text = d.visible
+        text = d.visible.replace(data.BRAND["name"], "")              # the registered name is the one exception
         assert not re.search(r"\{[a-z_>-]+\}", text), path
         for w in BANNED:
             assert not re.search(rf"\b{re.escape(w)}\b", text, re.I), (path, w)
@@ -173,3 +173,12 @@ def test_landing_pages_are_served_and_staging_is_noindex(client):
         assert r.headers["x-robots-tag"] == "noindex, nofollow"         # APP_ENV=test is not production
     assert client.head("/airport-transfers/newark").status_code == 200
     assert client.get("/sitemap.xml").text.count("<url>") == len(KNOWN)
+
+
+def test_logo_on_every_page_without_web_fonts(pages):
+    """Header wordmark and footer lockup are inline outlined SVG: no font request, crisp at any size."""
+    for path in pages:
+        html = site.render() if path == "/" else site.render_landing(landing_pages.BY_PATH[path])
+        assert html.count('class="wm"') == 1 and html.count('class="lockup brand-anim"') == 1, path
+        assert f'aria-label="{data.BRAND["name"]} home"' in html
+        assert "fonts.googleapis.com" not in html

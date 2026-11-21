@@ -26,7 +26,7 @@ from .errors import AppError
 from .services import analytics, bookings, notifications, tracking
 from .web import admin, integrations, public_api, site, trips
 
-log = logging.getLogger("meridian")
+log = logging.getLogger("celeste")
 SWEEP_SECONDS = 60
 
 GOOGLE_TAGS = "https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com"
@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     s = get_settings()
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
-    app = FastAPI(title="Meridian", lifespan=lifespan,
+    app = FastAPI(title="Celeste Luxury Limo", lifespan=lifespan,
                   # API docs only on a developer's machine — never on a public staging or production URL
                   docs_url="/api/docs" if s.app_env == "development" else None, redoc_url=None,
                   openapi_url="/api/openapi.json" if s.app_env == "development" else None)

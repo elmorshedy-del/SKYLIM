@@ -30,7 +30,7 @@ from ..errors import Conflict, Forbidden, Unavailable
 from ..security import trip_token
 from . import analytics, bookings, notifications
 
-log = logging.getLogger("meridian.payments")
+log = logging.getLogger("celeste.payments")
 STRIPE_MIN_SESSION = timedelta(minutes=31)      # Stripe minimum is 30 minutes; keep a margin
 REUSE_IF_VALID_FOR = timedelta(minutes=10)
 

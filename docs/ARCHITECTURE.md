@@ -4,7 +4,8 @@
 data.py                 business source of truth (brand, places, services, pricing inputs, voice, FAQs)
 landing_pages.py        copy and search targets for the landing pages (prices filled from the cost model)
 build.py + marketing/   static site generator → index.html, pages/**.html, pricing.md, robots.txt,
-                        sitemap.xml, seo_lastmod.json (seo.py: titles, JSON-LD, sitemap; landing.py: pages)
+                        sitemap.xml, seo_lastmod.json, static/favicon.svg (seo.py: titles, JSON-LD,
+                        sitemap; landing.py: pages; brand.py: the logo — wordmark, lockup, animation)
 static/                 tokens.css (design tokens) · site.css/js (homepage) · app.css · trip.js · fonts
 app/
   main.py               app factory: middleware (security headers, gzip), error mapping, background sweeper
@@ -26,7 +27,8 @@ app/
 migrations/             numbered SQL; guarantees live here (exclusion constraints, uniqueness)
 tests/                  pytest against real PostgreSQL (68 tests, incl. SEO guardrails)
 tools/rate_model.py     pricing proposal for owner review
-tools/make_images.py    renders static/og.png (share image) and static/logo.png from the brand
+tools/make_brand.py     outlines the logo lettering (Pinyon Script, Jost; SIL OFL) → static/brand/*.svg
+tools/make_images.py    renders static/og.png (share image) and static/logo.png from the logo
 ```
 
 ## Invariants and where they are enforced

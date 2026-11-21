@@ -1,4 +1,5 @@
-# Render Blueprint — infrastructure as code for the Meridian platform.
+# Render Blueprint — infrastructure as code for the Celeste Luxury Limo platform.
+# (Service and database names keep their original identifiers: renaming them would recreate them.)
 # Web service (Docker, always on) + managed PostgreSQL 16 with point-in-time recovery,
 # both in US East (Virginia) on Render's private network. The database accepts no
 # connections from the public internet (empty ipAllowList).

@@ -1,4 +1,4 @@
-# Meridian — Launch Plan (revised 19 Nov 2026)
+# Celeste Luxury Limo — Launch Plan (revised 19 Nov 2026; renamed 21 Nov 2026)
 
 This supersedes the draft plan of 19 November. It keeps its non-negotiables — server-owned prices,
 verified payments, honest tracking, no invented claims — and changes the business model, booking flow
@@ -9,7 +9,7 @@ and pricing approach based on the evidence below.
 **A private chauffeur service for executives and discerning travellers across New York and New Jersey.**
 Every journey is in a Cadillac Escalade with second-row captain's chairs, a panoramic sunroof and onboard
 Wi-Fi, prepared to the client's preferences before pickup. The brand is built to scale from one vehicle to a
-fleet: the promise is the **Meridian Standard**, not "one car".
+fleet: the promise is the **Celeste Standard**, not "one car".
 
 | | |
 |---|---|

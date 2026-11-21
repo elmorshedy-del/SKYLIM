@@ -17,7 +17,7 @@ from psycopg.types.json import Jsonb
 
 from ..config import Settings, get_settings
 
-log = logging.getLogger("meridian.analytics")
+log = logging.getLogger("celeste.analytics")
 MP_URL = "https://www.google-analytics.com/mp/collect"
 
 
