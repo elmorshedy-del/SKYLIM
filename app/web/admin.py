@@ -80,8 +80,10 @@ def dashboard(request: Request, now: datetime = Depends(clock)):
         vehicle = conn.execute("SELECT * FROM vehicles WHERE active ORDER BY created_at LIMIT 1").fetchone()
         driver = conn.execute("SELECT * FROM drivers WHERE active ORDER BY created_at LIMIT 1").fetchone()
         trackers = conn.execute("SELECT * FROM trackers ORDER BY kind").fetchall()
-        outbox = conn.execute("SELECT * FROM outbox WHERE status IN ('manual', 'failed') ORDER BY created_at DESC "
-                              "LIMIT 30").fetchall()
+        outbox = conn.execute(
+            """SELECT o.* FROM outbox o LEFT JOIN bookings b ON b.id = o.booking_id
+               WHERE o.status IN ('manual', 'failed') AND NOT COALESCE(b.is_test, false)
+               ORDER BY o.created_at DESC LIMIT 30""").fetchall()
         inquiries = conn.execute("SELECT * FROM inquiries WHERE handled_at IS NULL ORDER BY created_at DESC "
                                  "LIMIT 30").fetchall()
         blocks = conn.execute("""SELECT id, lower(during) AS starts, upper(during) AS ends, note FROM reservations

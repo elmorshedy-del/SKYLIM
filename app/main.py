@@ -37,7 +37,9 @@ CSP = ("default-src 'self'; "
        "img-src 'self' data: https:; "
        f"connect-src 'self' {GOOGLE_TAGS} https://*.g.doubleclick.net; "
        "frame-src https://www.googletagmanager.com; "
-       "frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+       "frame-ancestors 'none'; base-uri 'self'; "
+       # a form may lead to Stripe Checkout (e.g. the owner's test trip); browsers apply form-action to redirects
+       "form-action 'self' https://checkout.stripe.com")
 
 
 def sweep_once(now: datetime | None = None) -> None:

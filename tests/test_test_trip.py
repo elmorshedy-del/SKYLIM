@@ -74,3 +74,36 @@ def test_skips_launch_gates_but_never_uses_a_live_key_outside_production(setting
     assert not config.payments_possible(staging_live)
     ok, why = test_trip.readiness(staging_live)
     assert not ok and "production" in why
+
+
+def test_browsers_may_follow_the_redirect_to_stripe(client):
+    """Regression: CSP form-action 'self' made Safari silently drop the admin form's redirect to Checkout."""
+    csp = client.get("/").headers["content-security-policy"]
+    assert "form-action 'self' https://checkout.stripe.com" in csp
+
+
+def test_tapping_twice_reopens_the_same_trip_instead_of_overlapping(admin, gw):
+    first, second = start(admin), start(admin)
+    assert first.headers["location"] == second.headers["location"]          # same Stripe page, reused
+    assert len(gw.sessions) == 1
+    with tx() as conn:
+        assert conn.execute("SELECT count(*) AS n FROM bookings WHERE is_test").fetchone()["n"] == 1
+
+
+def test_after_a_paid_test_the_next_one_takes_the_next_free_hour(admin, gw, now):
+    start(admin)
+    paid = the_test_booking()
+    body, sig = signed(session_event("cs_test_1", paid))
+    payments.handle_event(body, sig, now=now)
+    r = start(admin)
+    assert "checkout.stripe" in r.headers["location"]
+    with tx() as conn:
+        rows = conn.execute("""SELECT b.pickup_at, r.during FROM bookings b JOIN reservations r ON r.booking_id = b.id
+                               WHERE b.is_test AND r.released_at IS NULL ORDER BY b.pickup_at""").fetchall()
+    assert len(rows) == 2 and rows[1]["pickup_at"] > rows[0]["pickup_at"]
+    assert rows[0]["during"].upper <= rows[1]["during"].lower                  # no overlap on the test calendar
+
+
+def test_test_trip_emails_stay_out_of_the_send_by_hand_list(admin, gw):
+    start(admin)
+    assert "complete payment" not in admin.get("/admin").text

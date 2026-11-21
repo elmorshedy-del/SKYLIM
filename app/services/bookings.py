@@ -97,11 +97,13 @@ def _review_flag(quote: dict, prefs: JourneyPreferences) -> Optional[str]:
 def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDetails,
            preferences: JourneyPreferences, remember: bool, accepted_policy_version: str,
            source: Optional[str], cat: Catalog, now: datetime, attribution: Optional[dict] = None,
-           instant: bool = False, settings: Optional[Settings] = None, is_test: bool = False) -> tuple[dict, str]:
+           instant: bool = False, settings: Optional[Settings] = None, is_test: bool = False,
+           resources: Optional[tuple[uuid.UUID, uuid.UUID]] = None) -> tuple[dict, str]:
     """Turn a quote into a reservation. Returns (booking, trip_token).
 
     instant=True (decided by the caller from quotes.instant_allowed) holds the slot
     straight away and moves to payment, with no owner approval in between.
+    resources=(vehicle_id, driver_id) chooses what an instant booking holds (default: the fleet's car).
     """
     q = conn.execute("SELECT * FROM quotes WHERE id = %s FOR UPDATE", (quote_id,)).fetchone()
     if not q:
@@ -153,8 +155,9 @@ def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDe
          "instant": instant, "is_test": is_test, "now": now}).fetchone()
     log_event(conn, booking["id"], "customer", None, Status.REQUESTED)
     if instant:
+        held = {"vehicle_id": resources[0], "driver_id": resources[1]} if resources else {}
         booking = approve(conn, booking["id"], now=now, settings=settings, actor="system",
-                          hold_minutes=settings.instant_hold_minutes)
+                          hold_minutes=settings.instant_hold_minutes, **held)
     else:
         notifications.enqueue(conn, "request_received", booking)
     notifications.enqueue(conn, "owner_new_request", booking)

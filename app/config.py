@@ -158,11 +158,13 @@ def launch_gates(s: Settings | None = None) -> list[tuple[str, bool, str]]:
     gates = [
         ("Business contact details are real",
          not placeholders and not data.BRAND.get("placeholder", False),
-         "data.py BRAND still contains: " + ", ".join(placeholders) if placeholders else "ok"),
+         "data.py BRAND still contains: " + ", ".join(placeholders) if placeholders
+         else "set BRAND['placeholder'] = False in data.py once the reservations email is real"),
         ("Operating authority and insurance confirmed by owner",
          bool(data.OPERATIONS.get("authority_confirmed")),
-         "Set OPERATIONS['authority_confirmed'] only after the municipal limousine licence, "
-         "N.J.S.A. 48:16 insurance filing and any federal registration are in hand"),
+         "Set OPERATIONS['authority_confirmed'] once the TLC vehicle and driver licences, base affiliation "
+         "and insurance — and interstate (FMCSA) authority for trips crossing to or from New Jersey — are "
+         "confirmed"),
         ("Vehicle capacity tested",
          bool(data.VEHICLE.get("capacity_tested")),
          "Run the luggage test and set VEHICLE['capacity_tested'] = True"),

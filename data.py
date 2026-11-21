@@ -281,8 +281,7 @@ TEST_TRIP = {
     "enabled": True,
     "amount_cents": 100,                      # $1.00
     "route": ("manhattan", "jfk"),            # any route the booking rules allow
-    "lead_hours": 48,                         # pickup time shown on the test trip
-    "hold_minutes": 60,                       # time to complete Stripe Checkout
+    "lead_hours": 48,                         # pickup time shown on the test trip (next free hour after it)
 }
 
 # ------------------------------------------------------------------ payment
