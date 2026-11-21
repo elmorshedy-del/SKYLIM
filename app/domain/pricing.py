@@ -31,6 +31,7 @@ REASONS = {
     "estimate": "Estimated — confirmed before any payment.",
 }
 BLOCKING = {"custom_route", "authority_arranged", "too_soon", "too_far", "over_capacity", "hours_range"}
+TIME_REASONS = {"too_soon", "too_far"}      # depend on the pickup time, not the route
 
 
 class QuoteInputError(ValueError):
@@ -101,12 +102,25 @@ def traffic_factor(at: datetime) -> float:
 
 # ------------------------------------------------------- authority, capacity
 def route_class(cat: Catalog, origin: str, destination: Optional[str]) -> str:
-    """Classify a trip for operating-authority purposes by the states of its two ends."""
-    a = cat.places[origin].state
-    b = cat.places[destination].state if destination else a
-    if a != b:
+    """Classify a trip by the licence that covers it (data.OPERATIONS['authority'] switches each on):
+
+      nyc_pickup        starts in New York City                     (NYC TLC licence)
+      into_nyc          starts outside NYC, ends in it              (e.g. Newark or Bergen -> Manhattan)
+      nj_intrastate     both ends in New Jersey, NYC not involved   (NJ municipal limousine licence)
+      interstate        crosses a state line without touching NYC   (e.g. Bergen -> Westchester)
+      other_intrastate  both ends in one other state, outside NYC   (e.g. Westchester -> HPN)
+
+    Hourly service is classified by where it starts.
+    """
+    o = cat.places[origin]
+    d = cat.places[destination] if destination else o
+    if o.nyc:
+        return "nyc_pickup"
+    if d.nyc:
+        return "into_nyc"
+    if o.state != d.state:
         return "interstate"
-    return "nj_intrastate" if a == "NJ" else "other_intrastate"
+    return "nj_intrastate" if o.state == "NJ" else "other_intrastate"
 
 
 LUGGAGE_UNITS = {"large": 2, "carry_on": 1}

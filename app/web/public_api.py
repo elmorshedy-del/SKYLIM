@@ -3,20 +3,21 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 import data
-from ..config import get_settings, payments_live
+from ..config import LOCAL_TZ, get_settings, payments_live
 from ..db import tx
 from ..domain.catalog import get_catalog
 from ..domain.preferences import MODE_DEFAULTS, JourneyPreferences
-from ..domain.pricing import QuoteInputError, TripRequest, parse_local_pickup
+from ..domain.pricing import (BLOCKING, TIME_REASONS, QuoteInputError, TripRequest, decide_quote, explain,
+                              parse_local_pickup)
 from ..errors import AppError, Invalid
-from ..services import bookings, payments, quotes
+from ..services import availability, bookings, payments, quotes
 from ..services.notifications import trip_url
 from .deps import clock, rate_limit
 
@@ -67,6 +68,17 @@ class QuoteIn(Strict):
     carry_ons: int = Field(default=0, ge=0, le=20)
     session_id: Optional[str] = Field(default=None, max_length=64)
     attribution: Optional[dict] = None
+
+
+class SlotsIn(Strict):
+    service: Literal["transfer", "hourly"] = "transfer"
+    origin: str = Field(max_length=40)
+    destination: Optional[str] = Field(default=None, max_length=40)
+    hours: Optional[float] = Field(default=None, ge=1, le=24)
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="New York calendar date, YYYY-MM-DD")
+    passengers: int = Field(default=1, ge=1, le=20)
+    large_bags: int = Field(default=0, ge=0, le=20)
+    carry_ons: int = Field(default=0, ge=0, le=20)
 
 
 class ContactIn(Strict):
@@ -163,6 +175,40 @@ def create_quote(body: QuoteIn, now: datetime = Depends(clock)) -> dict:
                                        session_id=body.session_id, attribution=_attribution(body.attribution))
     except QuoteInputError as e:
         raise Invalid(str(e))
+
+
+@router.post("/slots", dependencies=[rate_limit("slots", 60)])
+def pickup_slots(body: SlotsIn, now: datetime = Depends(clock)) -> dict:
+    """Pickup times that can be reserved online on one day — shown like appointment slots.
+
+    If the route itself can't be booked online (authority, capacity, hours), the reason comes back
+    instead of times, worded exactly as a quote would word it.
+    """
+    s, cat = get_settings(), get_catalog()
+    try:
+        day = date.fromisoformat(body.date)
+    except ValueError:
+        raise Invalid("Choose a valid date.")
+    if body.origin not in cat.places or (body.service == "transfer" and body.destination not in cat.places):
+        raise Invalid("Choose where we collect you and where you are going.")
+    probe_at = datetime.combine(day, datetime.min.time().replace(hour=12), LOCAL_TZ)
+    req = TripRequest(service=body.service, origin=body.origin,
+                      destination=body.destination if body.service == "transfer" else None,
+                      hours=body.hours if body.service == "hourly" else None, pickup_at=probe_at,
+                      passengers=body.passengers, large_bags=body.large_bags, carry_ons=body.carry_ons)
+    # Reasons that apply whatever the time (route, capacity, hours) are explained instead of listing times.
+    d = decide_quote(cat, req, now=now, min_notice_minutes=0, max_advance_days=10_000)
+    route_reasons = [r for r in d.reasons if r in BLOCKING and r not in TIME_REASONS]
+    ops = data.OPERATIONS
+    result = {"date": body.date, "note": ops["availability_note"], "phone": data.BRAND["phone_display"],
+              "slots": [], "messages": []}
+    if route_reasons:
+        result["messages"] = explain(route_reasons, cat, min_notice_minutes=s.min_notice_minutes,
+                                     max_advance_days=s.max_advance_days)
+        return result
+    with tx() as conn:
+        result["slots"] = availability.day_slots(conn, cat, req, day, now, s, ops["slots"])
+    return result
 
 
 @router.post("/bookings", status_code=201, dependencies=[rate_limit("bookings", 6)])

@@ -11,16 +11,16 @@ Point-to-point prices are per vehicle, in USD, and include tolls, congestion cha
 
 | Journey | From |
 |---|---|
+| Manhattan → JFK International | $365 |
+| Manhattan → Newark Liberty International (EWR) | $255 |
 | Teterboro (TEB) — private aviation → Manhattan | $305 |
+| Manhattan → LaGuardia (LGA) | $300 |
 | Bergen County → JFK International | $370 |
-| Hudson County → Newark Liberty International (EWR) | $165 |
-| Morris County → Newark Liberty International (EWR) | $230 |
+| Newark Liberty International (EWR) → Manhattan | $315 |
+| Hudson County → Manhattan | $230 |
+| Brooklyn → Newark Liberty International (EWR) | $280 |
 | Essex County → LaGuardia (LGA) | $300 |
-| Mercer County → Newark Liberty International (EWR) | $375 |
-| Monmouth County → JFK International | $470 |
 | Manhattan → Philadelphia, PA | $660 |
-| Westchester County, NY → Newark Liberty International (EWR) | $355 |
-| Fairfield County, CT → Teterboro (TEB) — private aviation | $400 |
 
 ## Pages
 
@@ -34,4 +34,4 @@ Point-to-point prices are per vehicle, in USD, and include tolls, congestion cha
 
 Service area: New Jersey, New York City, Westchester, Long Island, Fairfield County (CT) and Philadelphia, including EWR, JFK, LGA, Teterboro, Morristown and Westchester airports. Journeys that begin and end within New York State are arranged on request.
 
-Contact: reservations@celesteluxurylimo.com · (201) 555-0100
+Contact: reservations@celesteluxurylimo.com · (732) 666-7539

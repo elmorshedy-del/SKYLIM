@@ -7,14 +7,14 @@ constraints at the moment a slot is held.
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 import psycopg
 
 from ..config import LOCAL_TZ, Settings
 from ..db import DRIVER_ID, VEHICLE_ID
 from ..domain.catalog import Catalog
-from ..domain.pricing import TripRequest, service_window
+from ..domain.pricing import TripRequest, decide_quote, service_window
 
 LIVE = "released_at IS NULL AND NOT (kind = 'hold' AND expires_at <= %(now)s)"
 ALTERNATIVE_OFFSETS = (-30, 30, -60, 60, -90, 90, 120, -120, 180, 240)
@@ -70,3 +70,28 @@ def alternatives(conn: psycopg.Connection, cat: Catalog, req: TripRequest, loade
         if len(found) >= limit:
             break
     return sorted(found, key=lambda x: x["pickup_local"])
+
+
+def day_slots(conn: psycopg.Connection, cat: Catalog, req: TripRequest, day: date, now: datetime,
+              s: Settings, slots: dict) -> list[dict]:
+    """Every pickup time on `day` (New York) that can be reserved online now, appointment-style.
+
+    A time is offered only if it passes the same rules as a quote — route, capacity, notice, advance
+    limit (decide_quote) — and the calendar check (overlap with the chauffeur's trips and the daily
+    load). Times inside the instant-booking notice are not offered online. `slots` is
+    data.OPERATIONS["slots"]: {"first": "HH:MM", "last": "HH:MM", "step_minutes": int}.
+    """
+    earliest = now + timedelta(minutes=s.instant_min_notice_minutes)
+    step = timedelta(minutes=int(slots["step_minutes"]))
+    at = datetime.combine(day, time.fromisoformat(slots["first"]), LOCAL_TZ)
+    last = datetime.combine(day, time.fromisoformat(slots["last"]), LOCAL_TZ)
+    out: list[dict] = []
+    while at <= last:
+        if at >= earliest:
+            d = decide_quote(cat, replace(req, pickup_at=at), now=now, min_notice_minutes=s.min_notice_minutes,
+                             max_advance_days=s.max_advance_days)
+            if d.eligible and check(conn, d.service_start, d.service_end, now, s) == "available":
+                out.append({"pickup_local": at.strftime("%Y-%m-%dT%H:%M"),
+                            "label": at.strftime("%-I:%M %p").lower()})
+        at += step
+    return out

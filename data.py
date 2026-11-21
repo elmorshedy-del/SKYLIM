@@ -19,9 +19,9 @@ BRAND = {
     "short": "Celeste",                       # the wordmark; also the title suffix " | Celeste"
     "tagline": "Luxury Limo",                 # set under the wordmark in the logo
     "descriptor": "Private chauffeur service",
-    "domain": "celesteluxurylimo.com",        # PLACEHOLDER — the domain you register
-    "phone_display": "(201) 555-0100",        # PLACEHOLDER — a real line that is answered or texted back
-    "phone_raw": "+12015550100",              # PLACEHOLDER
+    "domain": "celesteluxurylimo.com",        # chosen 2026-11-21; register it, then point it at Render
+    "phone_display": "(732) 666-7539",        # reservations line, answered or texted back
+    "phone_raw": "+17326667539",
     "email": "reservations@celesteluxurylimo.com",  # PLACEHOLDER — the real reservations inbox
     "base_town": "Essex County, New Jersey",  # PLACEHOLDER — public town shown as a service-area business
     "authority_display": "",                  # e.g. "NJ limousine licence #… · USDOT #…" — only once issued
@@ -31,17 +31,26 @@ BRAND = {
 }
 
 OPERATIONS = {
-    # Flip only when the municipal limousine licence (N.J.S.A. 48:16-13 et seq.), the $1.5M liability
-    # policy filed under N.J.S.A. 48:16-14, livery registration and any federal registration are in hand.
+    # Flip once the owner confirms the licences and insurance behind every class switched on below:
+    # NYC TLC vehicle + driver licences and base affiliation, TLC-minimum insurance for the vehicle's
+    # class, and — for into_nyc trips from New Jersey — the base's interstate (FMCSA) authority.
     "authority_confirmed": False,
     "home_base": "essex",                     # place code the car starts and ends its day — CONFIRM
     "hours_label": "Reservations 24/7",
-    # Which trips may be booked online. A trip is classified by its two ends:
-    #   nj_intrastate    both ends in New Jersey                      (NJ limousine licence)
-    #   interstate       ends in different states, e.g. NJ <-> NY      (49 U.S.C. 14501(d) + federal registration)
-    #   other_intrastate both ends in one other state, e.g. NYC -> JFK (needs NYC TLC base affiliation or a partner)
-    # Routes that are not allowed are never refused outright: they become "we'll arrange it" requests.
-    "authority": {"nj_intrastate": True, "interstate": True, "other_intrastate": False},
+    # Pickup times offered in the booking form, like appointment slots (New York time).
+    "slots": {"first": "04:00", "last": "23:30", "step_minutes": 30},
+    "availability_note": "Limited availability during our launch — reserve early to secure your time.",
+    # Which trips may be booked online (instantly or on approval). Every other route becomes a
+    # "we'll arrange it" request — never refused. Classes are defined in domain/pricing.route_class.
+    #   nyc_pickup        starts in NYC — covered by the owner's NYC TLC licence (dispatched via the TLC base)
+    #   into_nyc          starts outside NYC, ends in it — owner reports this is covered. Crossing a state line
+    #                     (e.g. Newark -> Manhattan) is interstate: FMCSA requires interstate operating authority
+    #                     (USDOT/MC) for for-hire passenger carriers. CONFIRM the base holds it.
+    #   nj_intrastate     both ends in NJ — needs an NJ municipal limousine licence (not held)
+    #   interstate        crosses a state line without NYC — needs FMCSA interstate authority
+    #   other_intrastate  both ends in one other state, outside NYC
+    "authority": {"nyc_pickup": True, "into_nyc": True, "nj_intrastate": False, "interstate": False,
+                  "other_intrastate": False},
 }
 
 # Launch fleet. Seeded into the database on boot; later vehicles and chauffeurs are added as rows
@@ -132,9 +141,9 @@ PLACE_GROUPS = ["Airports & private aviation", "New York City", "New Jersey", "B
 PLACES = [
     {"code": "ewr", "name": "Newark Liberty International (EWR)", "short": "Newark (EWR)", "kind": "airport",
      "state": "NJ", "group": "Airports & private aviation", "lat": 40.6895, "lon": -74.1745, "crossing_min": 10},
-    {"code": "jfk", "name": "JFK International", "short": "JFK", "kind": "airport", "state": "NY",
+    {"code": "jfk", "name": "JFK International", "short": "JFK", "kind": "airport", "state": "NY", "nyc": True,
      "group": "Airports & private aviation", "lat": 40.6413, "lon": -73.7781, "crossing_min": 25, "mta": 1},
-    {"code": "lga", "name": "LaGuardia (LGA)", "short": "LaGuardia", "kind": "airport", "state": "NY",
+    {"code": "lga", "name": "LaGuardia (LGA)", "short": "LaGuardia", "kind": "airport", "state": "NY", "nyc": True,
      "group": "Airports & private aviation", "lat": 40.7769, "lon": -73.8740, "crossing_min": 20, "mta": 1},
     {"code": "teb", "name": "Teterboro (TEB) — private aviation", "short": "Teterboro", "kind": "aviation",
      "state": "NJ", "group": "Airports & private aviation", "lat": 40.8501, "lon": -74.0608, "crossing_min": 5},
@@ -144,16 +153,16 @@ PLACES = [
      "state": "NY", "group": "Airports & private aviation", "lat": 41.0670, "lon": -73.7076, "crossing_min": 10},
     {"code": "phl", "name": "Philadelphia International (PHL)", "short": "Philadelphia (PHL)", "kind": "airport",
      "state": "PA", "group": "Airports & private aviation", "lat": 39.8744, "lon": -75.2424, "crossing_min": 15},
-    {"code": "manhattan", "name": "Manhattan", "short": "Manhattan", "kind": "city", "state": "NY",
+    {"code": "manhattan", "name": "Manhattan", "short": "Manhattan", "kind": "city", "state": "NY", "nyc": True,
      "group": "New York City", "lat": 40.7549, "lon": -73.9840, "crossing_min": 20,
      "towns": ["Midtown", "Downtown", "Upper East Side", "Upper West Side", "Tribeca", "Financial District"]},
-    {"code": "brooklyn", "name": "Brooklyn", "short": "Brooklyn", "kind": "city", "state": "NY",
+    {"code": "brooklyn", "name": "Brooklyn", "short": "Brooklyn", "kind": "city", "state": "NY", "nyc": True,
      "group": "New York City", "lat": 40.6782, "lon": -73.9442, "crossing_min": 20, "mta": 1},
-    {"code": "queens", "name": "Queens", "short": "Queens", "kind": "city", "state": "NY",
+    {"code": "queens", "name": "Queens", "short": "Queens", "kind": "city", "state": "NY", "nyc": True,
      "group": "New York City", "lat": 40.7282, "lon": -73.7949, "crossing_min": 20, "mta": 1},
-    {"code": "bronx", "name": "The Bronx", "short": "Bronx", "kind": "city", "state": "NY",
+    {"code": "bronx", "name": "The Bronx", "short": "Bronx", "kind": "city", "state": "NY", "nyc": True,
      "group": "New York City", "lat": 40.8448, "lon": -73.8648, "crossing_min": 15},
-    {"code": "staten", "name": "Staten Island", "short": "Staten Island", "kind": "city", "state": "NY",
+    {"code": "staten", "name": "Staten Island", "short": "Staten Island", "kind": "city", "state": "NY", "nyc": True,
      "group": "New York City", "lat": 40.5795, "lon": -74.1502, "crossing_min": 10},
     {"code": "hudson", "name": "Hudson County", "short": "Hudson", "kind": "area", "state": "NJ",
      "group": "New Jersey", "region": "North Jersey", "lat": 40.728, "lon": -74.078, "towns": ["Jersey City", "Hoboken", "Bayonne", "Union City", "Weehawken", "Secaucus", "North Bergen", "Kearny"]},
@@ -214,9 +223,9 @@ PLACES = [
 ]
 
 # Shown on the site as "from" prices. Each must be a route the authority rules allow.
-POPULAR_JOURNEYS = [("teb", "manhattan"), ("bergen", "jfk"), ("hudson", "ewr"), ("morris", "ewr"),
-                    ("essex", "lga"), ("mercer", "ewr"), ("monmouth", "jfk"), ("manhattan", "philadelphia"),
-                    ("westchester", "ewr"), ("fairfield", "teb")]
+POPULAR_JOURNEYS = [("manhattan", "jfk"), ("manhattan", "ewr"), ("teb", "manhattan"), ("manhattan", "lga"),
+                    ("bergen", "jfk"), ("ewr", "manhattan"), ("hudson", "manhattan"), ("brooklyn", "ewr"),
+                    ("essex", "lga"), ("manhattan", "philadelphia")]
 
 # ----------------------------------------------------------------- pricing
 # Inputs to the cost model in app/domain/rates.py. Every number is the owner's to confirm.
@@ -263,6 +272,15 @@ BENCHMARKS = [
     {"route": None, "who": "Uber Black SUV, NYC 5 mi / 16 min", "all_in_cents": 11000, "checked": "2026-10-11",
      "source": "fareestimate.com $75-107 excl. tolls, fees and tip (midpoint + 20% tip)"},
 ]
+
+# ------------------------------------------------------------------ payment
+# What clients see at Stripe Checkout (Dashboard -> Settings -> Payment methods). Keep in step with Stripe.
+PAYMENT = {
+    "processor": "Stripe",
+    "wallets": ["Apple Pay", "Google Pay", "Link"],
+    "cards": ["Visa", "Mastercard", "American Express", "Discover"],
+    "pay_later": "Klarna",                     # instalments; None to hide
+}
 
 # ------------------------------------------------------------------- voice
 VOICE = {
@@ -322,6 +340,10 @@ FAQS = [
      "Usually the moment payment clears. Before a time is offered, our system checks the calendar — the drive to "
      "you, your journey and the drive back — so a confirmed reservation is one we can keep. Very short notice, "
      "unusual luggage or routes we arrange personally are confirmed by us first, typically within the hour."),
+    ("Is it safe to pay online?",
+     "Yes. Payment is taken on Stripe's secure checkout, certified to PCI DSS Level 1, the highest standard in the "
+     "payments industry. Your card number is encrypted and never reaches our servers; with Apple Pay or Google "
+     "Pay it is never shared at all. Your receipt arrives by email the moment you book."),
     ("Can I keep the car for the day?",
      "Yes. Book by the hour and your chauffeur stays with you between meetings — plans can change on the day. "
      "There is a three-hour minimum."),

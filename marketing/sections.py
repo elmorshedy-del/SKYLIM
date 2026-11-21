@@ -64,6 +64,13 @@ def _stepper(name: str, label: str, value: int, lo: int, hi: int) -> str:
     </div>"""
 
 
+def pay_trust() -> str:
+    """One line of reassurance at the moment of decision, worded the way checkout pages are."""
+    p = data.PAYMENT
+    return (f'<p class="pay-trust">{icon("lock", 14)}<span>Secure checkout powered by {e(p["processor"])}'
+            f'<small>{e(" · ".join(p["wallets"] + ["cards"]))}</small></span></p>')
+
+
 def luggage_guide() -> str:
     rows = "".join(f'<li><b>{e(g)}</b><span>{e(f)}</span><small>{e(n)}</small></li>'
                    for g, f, n in data.VEHICLE["luggage_guide"])
@@ -90,8 +97,14 @@ def quote_panel(preset: tuple[str, str] = ("", "")) -> str:
           <select id="q-to">{_place_options('Destination', destination)}</select></label>
         <label class="field" data-for="hourly" hidden><span class="sr">Duration</span>{icon('clock', 20)}
           <select id="q-hours">{hours}</select></label>
-        <label class="field"><span class="sr">Pickup date and time (Eastern)</span>{icon('calendar', 20)}
-          <input id="q-when" type="datetime-local" required></label>
+        <label class="field"><span class="sr">Pickup date</span>{icon('calendar', 20)}
+          <input id="q-date" type="date" required></label>
+        <input type="hidden" id="q-when">
+        <div class="slots">
+          <p class="slots-msg" id="q-slots-msg" aria-live="polite">Choose your journey and date to see available pickup times.</p>
+          <div class="slot-grid" id="q-slot-grid" role="group" aria-label="Available pickup times, New York time"></div>
+          <p class="limited">{icon('clock', 14)}{e(data.OPERATIONS['availability_note'])}</p>
+        </div>
         <div class="steppers three">{_stepper('q-pax', 'Guests', 1, 1, data.VEHICLE['max_passengers'])}
           {_stepper('q-bags', 'Large', 1, 0, 8)}{_stepper('q-carry', 'Carry-on', 1, 0, 8)}</div>
         <div class="fit" id="q-fit" aria-live="polite">
@@ -102,6 +115,7 @@ def quote_panel(preset: tuple[str, str] = ("", "")) -> str:
         </div>
         <p class="err" id="q-err" role="alert" hidden></p>
         <button class="btn btn-dark btn-block btn-lg" type="submit" data-track="quote_submit">See price</button>
+        {pay_trust()}
       </form>
 
       <div class="result" id="quote-result" hidden aria-live="polite">
@@ -113,6 +127,7 @@ def quote_panel(preset: tuple[str, str] = ("", "")) -> str:
         <div class="alts" id="r-alts"></div>
         <button class="btn btn-dark btn-block btn-lg" id="r-book" type="button" data-track="reserve_start">Reserve</button>
         <button class="btn btn-ghost btn-block" id="r-edit" type="button">Change details</button>
+        {pay_trust()}
       </div>
     </div>"""
 
@@ -267,6 +282,39 @@ def pricing() -> str:
       </div>
       <ul class="journeys">{''.join(cards)}</ul>
     </div>
+  </div>
+</section>"""
+
+
+def secure() -> str:
+    """Book with confidence: how payment is protected, in the words clients know from checkout pages."""
+    p, hours = data.PAYMENT, data.POLICY["free_cancel_hours"]
+    later = f" — or pay over time with {p['pay_later']}" if p.get("pay_later") else ""
+    items = [
+        ("shield", f"Secure checkout, powered by {p['processor']}",
+         f"Payments are processed by {p['processor']}, certified to PCI DSS Level 1 — the highest standard in "
+         "the payments industry. Your card details are encrypted and never reach our servers."),
+        ("card", "Pay your way",
+         f"{', '.join(p['wallets'])} and all major cards{later}. With Apple Pay and Google Pay, your card "
+         "number is never shared at all."),
+        ("calendar", "Free cancellation",
+         f"Cancel free of charge up to {hours} hours before pickup. Refunds go straight back to your original "
+         "payment method."),
+        ("tag", "Price locked. Receipt instantly.",
+         "The price you see is the price you pay — tolls, congestion charges and gratuity included. Your "
+         "receipt arrives by email the moment you book, and your statement shows your trip reference."),
+    ]
+    cards = "".join(f'<li>{icon(i, 26)}<h3>{e(t)}</h3><p>{e(d)}</p></li>' for i, t, d in items)
+    marks = "".join(f"<li>{e(m)}</li>" for m in p["wallets"] + p["cards"] + ([p["pay_later"]] if p.get("pay_later") else []))
+    return f"""
+<section class="sec" id="secure" aria-labelledby="secure-h">
+  <div class="wrap">
+    <p class="eyebrow">Book with confidence</p>
+    <h2 id="secure-h" class="h2">Secure from the first tap.</h2>
+    <p class="lede">Every payment is handled by {e(p['processor'])}, the payment platform trusted by millions of
+      businesses worldwide.</p>
+    <ul class="pillars secure-list">{cards}</ul>
+    <ul class="pay-marks" aria-label="Accepted payment methods">{marks}</ul>
   </div>
 </section>"""
 

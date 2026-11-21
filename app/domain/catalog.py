@@ -15,6 +15,9 @@ KINDS = {"airport", "aviation", "city", "area"}
 STATES = {"NJ", "NY", "PA", "CT"}
 
 
+# Route classes, by who licenses the trip (see domain/pricing.route_class and data.OPERATIONS).
+ROUTE_CLASSES = ("nyc_pickup", "into_nyc", "nj_intrastate", "interstate", "other_intrastate")
+
 @dataclass(frozen=True)
 class Place:
     code: str
@@ -29,6 +32,7 @@ class Place:
     mta: int = 0           # MTA bridge/tunnel crossings each way from New Jersey
     towns: tuple[str, ...] = field(default_factory=tuple)
     region: str = ""
+    nyc: bool = False      # inside New York City (the five boroughs, JFK, LaGuardia): TLC jurisdiction
 
     @property
     def point(self) -> tuple[float, float]:
@@ -68,13 +72,16 @@ class Catalog:
                 code=p["code"], name=p["name"], short=p["short"], kind=p["kind"], state=p["state"],
                 group=p["group"], lat=float(p["lat"]), lon=float(p["lon"]),
                 crossing_min=float(p.get("crossing_min", 0)), mta=int(p.get("mta", 0)),
-                towns=tuple(p.get("towns", ())), region=p.get("region", ""))
+                towns=tuple(p.get("towns", ())), region=p.get("region", ""), nyc=bool(p.get("nyc", False)))
         home = mod.OPERATIONS["home_base"]
         if home not in places:
             raise ValueError(f"OPERATIONS['home_base'] {home!r} is not a place code")
         for a, b in getattr(mod, "POPULAR_JOURNEYS", []):
             if a not in places or b not in places:
                 raise ValueError(f"POPULAR_JOURNEYS has unknown place in {(a, b)!r}")
+        unknown = set(mod.OPERATIONS["authority"]) - set(ROUTE_CLASSES)
+        if unknown:
+            raise ValueError(f"OPERATIONS['authority'] has unknown route classes: {sorted(unknown)}")
         pricing = dict(mod.PRICING)
         return cls(places=places, params=pricing, authority=dict(mod.OPERATIONS["authority"]),
                    vehicle=dict(mod.VEHICLE), driver=dict(mod.DRIVER), policy=dict(mod.POLICY),

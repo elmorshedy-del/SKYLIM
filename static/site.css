@@ -431,3 +431,27 @@ body.sheet-open{overflow:hidden}
 .has-hero-logo .nav .brand{opacity:0;visibility:hidden;transition:opacity .35s,visibility .35s}
 .has-hero-logo.logo-away .nav .brand{opacity:1;visibility:visible}
 @media (prefers-reduced-motion:reduce){.brand-art *{animation:none!important}}
+
+/* secure payment: the line under booking buttons and the Book with confidence section */
+.pay-trust{display:flex;align-items:flex-start;justify-content:center;gap:8px;margin:14px 0 0;font-size:.85rem;
+  color:var(--g600);text-align:left}
+.pay-trust .ic{margin-top:2px;color:var(--positive)}
+.pay-trust span{display:flex;flex-direction:column;gap:2px;font-weight:600;color:var(--black)}
+.pay-trust small{font-weight:400;color:var(--g600)}
+.secure-list li .ic{color:var(--positive)}
+.pay-marks{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px}
+.pay-marks li{padding:8px 14px;border:1px solid var(--line);border-radius:999px;font-size:.88rem;font-weight:600;
+  color:var(--g700);background:var(--white)}
+
+/* pickup times, appointment-style */
+.slots{margin:2px 0 4px}
+.slots-msg{font-size:.9rem;color:var(--g600);margin:4px 2px 8px}
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:8px;max-height:200px;overflow-y:auto;
+  padding:2px;overscroll-behavior:contain}
+.slot-grid:empty{display:none}
+.slot{min-height:44px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--white);font:inherit;
+  font-size:.92rem;font-weight:600;color:var(--black);cursor:pointer}
+.slot:hover{border-color:var(--black)}
+.slot[aria-pressed="true"]{background:var(--black);color:#fff;border-color:var(--black)}
+.limited{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--g600);margin:10px 2px 0}
+.limited .ic{flex:none}

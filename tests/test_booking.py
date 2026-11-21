@@ -32,13 +32,23 @@ def test_hourly_priced_at_published_rate_with_minimum(now):
     assert not short["bookable"] and any(m["code"] == "hours_range" for m in short["messages"])
 
 
-def test_authority_rules_route_other_state_trips_to_request(now):
-    nj = quote(now, origin="hudson", destination="ewr")
-    cross = quote(now, origin="teb", destination="manhattan")
-    ny_only = quote(now, origin="manhattan", destination="jfk")
-    assert nj["bookable"] and cross["bookable"]
-    assert not ny_only["bookable"] and ny_only["amount_cents"]          # priced, but arranged by request
-    assert any(m["code"] == "authority_arranged" for m in ny_only["messages"])
+def test_authority_rules_follow_the_licence(now):
+    """TLC licence: trips that start in NYC or end in it are booked online; others are arranged by request."""
+    from app.domain import pricing
+    cat = get_catalog()
+    assert pricing.route_class(cat, "manhattan", "jfk") == "nyc_pickup"
+    assert pricing.route_class(cat, "manhattan", "ewr") == "nyc_pickup"
+    assert pricing.route_class(cat, "teb", "manhattan") == "into_nyc"
+    assert pricing.route_class(cat, "hudson", "ewr") == "nj_intrastate"
+    assert pricing.route_class(cat, "bergen", "westchester") == "interstate"
+    assert pricing.route_class(cat, "westchester", "hpn") == "other_intrastate"
+    assert pricing.route_class(cat, "manhattan", None) == "nyc_pickup"          # hourly: where it starts
+
+    for origin, destination in [("manhattan", "jfk"), ("teb", "manhattan"), ("bergen", "jfk")]:
+        assert quote(now, origin=origin, destination=destination)["bookable"], (origin, destination)
+    nj_only = quote(now, origin="hudson", destination="ewr")
+    assert not nj_only["bookable"] and nj_only["amount_cents"]          # priced, but arranged by request
+    assert any(m["code"] == "authority_arranged" for m in nj_only["messages"])
 
 
 def test_booking_amount_comes_from_quote_not_input(now):

@@ -61,7 +61,7 @@ def render() -> str:
         sections.header(),
         '<main id="main">',
         sections.hero(), sections.services(), sections.cabin(), sections.standard(), sections.how(),
-        sections.pricing(), sections.realtime(), sections.bespoke(), sections.faq(), sections.closing(),
+        sections.pricing(), sections.secure(), sections.realtime(), sections.bespoke(), sections.faq(), sections.closing(),
         "</main>",
         sections.footer(),
         booking.dialog(),

@@ -87,7 +87,6 @@
       hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d).forEach(function (x) { p[x.type] = x.value; });
     return p;
   }
-  function etInput(d) { var p = etParts(d); return p.year + '-' + p.month + '-' + p.day + 'T' + (p.hour === '24' ? '00' : p.hour) + ':' + p.minute; }
   function fmtWhen(iso) {
     return new Date(iso).toLocaleString('en-US', { timeZone: ET, weekday: 'short', month: 'short', day: 'numeric',
       hour: 'numeric', minute: '2-digit' }) + ' ET';
@@ -98,11 +97,11 @@
       : q.route.origin + ' → ' + q.route.destination;
   }
 
-  var when = $('#q-when');
-  if (when) {
-    var p = etParts(new Date(Date.now() + 24 * 3600e3));
-    when.value = p.year + '-' + p.month + '-' + p.day + 'T09:00';
-    when.min = etInput(new Date());
+  var when = $('#q-when'), dateIn = $('#q-date');
+  function etDate(d) { var p = etParts(d); return p.year + '-' + p.month + '-' + p.day; }
+  if (dateIn) {                                   /* tomorrow by default; never a past day */
+    dateIn.value = etDate(new Date(Date.now() + 24 * 3600e3));
+    dateIn.min = etDate(new Date());
   }
 
   /* ============================================================ steppers */
@@ -156,7 +155,7 @@
     var from = $('#q-from').value, to = $('#q-to').value;
     if (!from) { showError('Choose where we collect you.'); $('#q-from').focus(); return; }
     if (S.service === 'transfer' && !to) { showError('Choose your destination.'); $('#q-to').focus(); return; }
-    if (!when.value) { showError('Choose a date and time.'); when.focus(); return; }
+    if (!when.value) { showError('Choose a pickup time.'); ($('.slot', $('#q-slot-grid')) || dateIn).focus(); return; }
     showError('');
     var btn = $('button[type="submit"]', form); btn.disabled = true; btn.textContent = 'Checking availability…';
     var body = { service: S.service, origin: from, destination: S.service === 'transfer' ? to : null,
@@ -224,9 +223,52 @@
       result.hidden = true; form.hidden = false;
       document.getElementById('reserve').scrollIntoView({ behavior: 'smooth', block: 'center' });
       track('popular_journey_selected', { journey: a.dataset.from + '-' + a.dataset.to });
-      requestQuote();
+      loadSlots();
     });
   });
+
+  /* ============================================ pickup times, appointment-style */
+  /* Only times that can really be reserved are shown (POST /api/slots applies the same rules as a quote).
+     Picking one prices the trip at once. A newer request always wins over a slower, older one. */
+  var slotGrid = $('#q-slot-grid'), slotMsg = $('#q-slots-msg'), slotTimer, slotSeq = 0;
+  function slotsMessage(text) { slotMsg.textContent = text; slotMsg.hidden = !text; }
+  function loadSlots() { if (slotGrid) { clearTimeout(slotTimer); slotTimer = setTimeout(fetchSlots, 200); } }
+  function fetchSlots() {
+    var from = $('#q-from').value, to = $('#q-to').value, seq = ++slotSeq;
+    when.value = ''; slotGrid.innerHTML = '';
+    if (!from || (S.service === 'transfer' && !to) || !dateIn.value) {
+      slotsMessage('Choose your journey and date to see available pickup times.'); return;
+    }
+    slotsMessage('Checking availability…');
+    api('POST', '/api/slots', { service: S.service, origin: from, destination: S.service === 'transfer' ? to : null,
+      hours: S.service === 'hourly' ? +$('#q-hours').value : null, date: dateIn.value,
+      passengers: +$('#q-pax').textContent, large_bags: +$('#q-bags').textContent,
+      carry_ons: +$('#q-carry').textContent }).then(function (r) {
+      if (seq !== slotSeq) return;
+      if (r.messages.length) { slotsMessage(r.messages.map(function (m) { return m.message; }).join(' ')); return; }
+      if (!r.slots.length) { slotsMessage('Fully booked on this day. Try another date, or call or text ' + r.phone + '.'); return; }
+      slotsMessage('');
+      r.slots.forEach(function (s) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'slot num'; b.textContent = s.label; b.dataset.local = s.pickup_local;
+        b.setAttribute('aria-pressed', 'false');
+        b.addEventListener('click', function () { pickSlot(b); });
+        slotGrid.appendChild(b);
+      });
+      track('slots_viewed', { count: r.slots.length });
+    }).catch(function (e) { if (seq === slotSeq) slotsMessage(e.message); });
+  }
+  function pickSlot(b) {
+    $$('.slot', slotGrid).forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    when.value = b.dataset.local;
+    track('slot_selected');
+    requestQuote();
+  }
+  if (form && slotGrid) {
+    ['#q-from', '#q-to', '#q-hours', '#q-date'].forEach(function (id) { $(id).addEventListener('change', loadSlots); });
+    $$('.mt').forEach(function (t) { t.addEventListener('click', loadSlots); });
+    loadSlots();                                  /* landing pages arrive with the route pre-selected */
+  }
 
   /* ======================================================== reservation */
   var sheet = $('#book'), bform = $('#book-form'), step = 1;

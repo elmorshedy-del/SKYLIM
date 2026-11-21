@@ -133,7 +133,7 @@ def body(page: dict) -> str:
     return "".join([
         sections.header(LOCAL_IDS),
         '<main id="main">',
-        hero(page), airports(page), routes(page), prose(page), steps(page), sections.cabin(),
+        hero(page), airports(page), routes(page), sections.secure(), prose(page), steps(page), sections.cabin(),
         sections.faq(faqs(page)), related(page), sections.bespoke(), sections.closing(),
         "</main>",
         sections.footer(LOCAL_IDS),
