@@ -71,7 +71,7 @@ class StripeEndpoints:
 
     def list(self) -> list[dict]:
         return [{"id": e.id, "url": e.url, "status": e.status, "events": sorted(e.enabled_events),
-                 "metadata": dict(e.metadata or {})}
+                 "metadata": e.metadata.to_dict() if e.metadata is not None else {}}
                 for e in self._api.list(params={"limit": 100}).auto_paging_iter()]
 
     def create(self, url: str, events: list[str], metadata: dict, description: str) -> dict:

@@ -141,3 +141,34 @@ def test_receipt_email_requested_from_stripe(settings):
 def test_email_gate_is_recommended_not_blocking(settings):
     names = {n for n, _, _ in config.launch_gates(settings)}
     assert config.RECOMMENDED_GATES <= names
+
+
+def test_adapter_reads_real_stripe_objects():
+    """The adapter must handle the library's own objects (not plain dicts) — fakes elsewhere can't prove this."""
+    import stripe
+
+    def obj(values):
+        return stripe.StripeObject.construct_from(values, "sk_test_x")
+
+    class Page:
+        def auto_paging_iter(self):
+            return iter([obj({"id": "we_1", "url": "https://test.example/api/webhooks/stripe", "status": "enabled",
+                              "enabled_events": EVENTS[::-1], "metadata": {"managed_by": MANAGER}}),
+                         obj({"id": "we_2", "url": "https://x.example/hook", "status": "disabled",
+                              "enabled_events": ["*"], "metadata": {}})])
+
+    class Api:
+        def list(self, params):
+            return Page()
+
+        def create(self, params):
+            return obj({"id": "we_3", "secret": "whsec_real_shape"})
+
+    adapter = stripe_setup.StripeEndpoints("sk_test_x")
+    adapter._api = Api()
+    listed = adapter.list()
+    assert listed[0] == {"id": "we_1", "url": "https://test.example/api/webhooks/stripe", "status": "enabled",
+                         "events": EVENTS, "metadata": {"managed_by": MANAGER}}
+    assert listed[1]["metadata"] == {}
+    assert adapter.create("https://test.example/api/webhooks/stripe", EVENTS, {}, "d") == \
+        {"id": "we_3", "secret": "whsec_real_shape"}
