@@ -76,8 +76,9 @@ def start(conn: psycopg.Connection, *, now: datetime, settings: Settings, cat: C
         req = TripRequest(service="transfer", origin=origin, destination=destination,
                           pickup_at=first + timedelta(hours=hour), passengers=1, large_bags=0)
         d = decide_quote(cat, req, now=now, min_notice_minutes=0, max_advance_days=10_000)
-        if not availability.overlaps(conn, d.service_start, d.service_end, now,
-                                     vehicle_id=TEST_VEHICLE_ID, driver_id=TEST_DRIVER_ID):
+        verdict = availability.fit(conn, cat, availability.job_from_decision(cat, req, d), now, settings,
+                                   vehicle_id=TEST_VEHICLE_ID, driver_id=TEST_DRIVER_ID)
+        if verdict == "available":         # the same rule a client's instant booking must pass
             break
     else:
         raise Conflict("The test calendar is full — cancel an earlier test trip in /admin.", code="test_calendar_full")

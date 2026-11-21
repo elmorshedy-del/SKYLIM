@@ -455,3 +455,7 @@ body.sheet-open{overflow:hidden}
 .slot[aria-pressed="true"]{background:var(--black);color:#fff;border-color:var(--black)}
 .limited{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--g600);margin:10px 2px 0}
 .limited .ic{flex:none}
+.slot.req{border-style:dashed;border-color:var(--g400);color:var(--g700);line-height:1.1}
+.slot small{display:block;font-size:.66rem;font-weight:500;color:var(--g500);margin-top:2px}
+.slot.req[aria-pressed="true"] small{color:var(--g300)}
+.slots-legend{font-size:.8rem;color:var(--g600);margin:8px 2px 0}

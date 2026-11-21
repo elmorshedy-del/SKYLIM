@@ -273,6 +273,25 @@ BENCHMARKS = [
      "source": "fareestimate.com $75-107 excl. tolls, fees and tip (midpoint + 20% tip)"},
 ]
 
+# --------------------------------------------------------------- scheduling
+# How trips fit around each other (app/services/availability.fit). Each trip blocks only its own time —
+# on site before pickup until the drop-off — and the next trip starts from the previous drop-off.
+# Between two trips the chauffeur needs the drive plus a buffer for what can't be predicted:
+#   * time that fits with the buffer       -> reserved and paid instantly
+#   * time that fits only if all runs on time -> offered "on request"; the owner judges (flight status,
+#                                               traffic) and approves or suggests another time
+#   * time that does not fit at all        -> not offered
+SCHEDULING = {
+    "buffer_after_min": {                     # margin after a trip, by what can make it run late
+        "airport_arrival": 60,                # flight delays, baggage, customs; the start isn't ours to set
+        "hourly": 30,                         # the client may ask to stay a little longer
+        "standard": 30,                       # traffic
+        "block": 0,                           # the owner's own blocked time
+    },
+    # Days the roads are known to be worse: drive and trip times multiplied (local dates).
+    "heavy_days": {"2026-11-25": 1.30, "2026-11-29": 1.25},  # Thanksgiving getaway Wednesday, return Sunday
+}
+
 # ---------------------------------------------------------------- test trip
 # The owner's $1 test trip (app/services/test_trip.py): /admin -> "Start a $1 test trip" books and pays
 # a real trip to check booking, Stripe, confirmation and the trip page, then cancel it to test the

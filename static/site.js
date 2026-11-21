@@ -235,7 +235,7 @@
   function loadSlots() { if (slotGrid) { clearTimeout(slotTimer); slotTimer = setTimeout(fetchSlots, 200); } }
   function fetchSlots() {
     var from = $('#q-from').value, to = $('#q-to').value, seq = ++slotSeq;
-    when.value = ''; slotGrid.innerHTML = '';
+    when.value = ''; slotGrid.innerHTML = ''; $('#q-slots-legend').hidden = true;
     if (!from || (S.service === 'transfer' && !to) || !dateIn.value) {
       slotsMessage('Choose your journey and date to see available pickup times.'); return;
     }
@@ -248,13 +248,16 @@
       if (r.messages.length) { slotsMessage(r.messages.map(function (m) { return m.message; }).join(' ')); return; }
       if (!r.slots.length) { slotsMessage('Fully booked on this day. Try another date, or call or text ' + r.phone + '.'); return; }
       slotsMessage('');
+      var anyRequest = false;
       r.slots.forEach(function (s) {
-        var b = document.createElement('button');
-        b.type = 'button'; b.className = 'slot num'; b.textContent = s.label; b.dataset.local = s.pickup_local;
-        b.setAttribute('aria-pressed', 'false');
+        var b = document.createElement('button'), req = s.mode === 'request';
+        b.type = 'button'; b.className = 'slot num' + (req ? ' req' : ''); b.textContent = s.label;
+        b.dataset.local = s.pickup_local; b.setAttribute('aria-pressed', 'false');
+        if (req) { var tag = document.createElement('small'); tag.textContent = 'on request'; b.appendChild(tag); anyRequest = true; }
         b.addEventListener('click', function () { pickSlot(b); });
         slotGrid.appendChild(b);
       });
+      $('#q-slots-legend').hidden = !anyRequest;
       track('slots_viewed', { count: r.slots.length });
     }).catch(function (e) { if (seq === slotSeq) slotsMessage(e.message); });
   }

@@ -147,19 +147,44 @@ def capacity_check(vehicle: dict, passengers: int, large_bags: int, carry_ons: i
 
 
 # ----------------------------------------------------------------- window
+def heavy_day_factor(cat: Catalog, at: datetime) -> float:
+    """Known heavy-traffic days (data.SCHEDULING['heavy_days']), by local date."""
+    return float(cat.scheduling.get("heavy_days", {}).get(at.astimezone(LOCAL_TZ).date().isoformat(), 1.0))
+
+
+def drive_factor(cat: Catalog, at: datetime) -> float:
+    return traffic_factor(at) * heavy_day_factor(cat, at)
+
+
 def service_window(cat: Catalog, req: TripRequest, loaded_minutes: int) -> tuple[datetime, datetime]:
-    """The interval the vehicle and chauffeur are unavailable to anyone else."""
+    """The time the car is committed to this trip itself: on site before pickup until the drop-off is done.
+
+    Getting there and moving on depend on the neighbouring trips, so availability.fit adds those drives
+    (from the previous drop-off, to the next pickup) and the buffers — not this window.
+    """
     p = cat.params
     origin = cat.places[req.origin]
-    end_place = cat.places[req.destination] if req.destination else origin
     wait = p["airport_wait_min"] if origin.is_airport else cat.policy.get("wait_included_min", 15)
     if req.service == "hourly":
         on_job = (req.hours or p["hourly_min_hours"]) * 60
     else:
-        on_job = wait + loaded_minutes * traffic_factor(req.pickup_at) + p["curbside_min"]
-    before = rates.approach_minutes(cat, origin) + p["early_arrival_min"]
-    after = on_job + rates.return_minutes(cat, end_place) * p["return_traffic_allowance"] + p["service_buffer_min"]
-    return req.pickup_at - timedelta(minutes=round(before)), req.pickup_at + timedelta(minutes=round(after))
+        on_job = wait + loaded_minutes * drive_factor(cat, req.pickup_at) + p["curbside_min"]
+    return (req.pickup_at - timedelta(minutes=p["early_arrival_min"]),
+            req.pickup_at + timedelta(minutes=round(on_job)))
+
+
+def leg_minutes(cat: Catalog, a: Optional[str], b: Optional[str], at: datetime) -> float:
+    """Drive between two place codes at that time of day; None means the chauffeur's home base."""
+    pa = cat.places[a] if a else cat.base
+    pb = cat.places[b] if b else cat.base
+    return rates.drive_minutes(cat, pa, pb) * drive_factor(cat, at)
+
+
+def risk_of(cat: Catalog, req: TripRequest) -> str:
+    """What could make this trip run late — sets the buffer after it (data.SCHEDULING)."""
+    if req.service == "hourly":
+        return "hourly"
+    return "airport_arrival" if cat.places[req.origin].is_airport else "standard"
 
 
 # ------------------------------------------------------------------ quote

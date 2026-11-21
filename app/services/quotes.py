@@ -15,6 +15,7 @@ from . import availability, flags
 AVAILABILITY_MESSAGES = {
     "unavailable": "We are already reserved around that time.",
     "day_full": "That day is fully committed.",
+    "tight": "That time sits close to another trip, so we confirm it personally — usually within the hour.",
 }
 
 
@@ -30,8 +31,9 @@ def create_quote(conn: psycopg.Connection, req: TripRequest, *, cat: Catalog, se
                  session_id: Optional[str] = None, attribution: Optional[dict] = None) -> dict:
     d: QuoteDecision = decide_quote(cat, req, now=now, min_notice_minutes=settings.min_notice_minutes,
                                     max_advance_days=settings.max_advance_days)
-    avail = availability.check(conn, d.service_start, d.service_end, now, settings) if d.eligible else None
-    bookable = d.eligible and avail == "available"
+    avail = (availability.fit(conn, cat, availability.job_from_decision(cat, req, d), now, settings)
+             if d.eligible else None)
+    bookable = d.eligible and avail in availability.BOOKABLE        # tight: bookable as a request
     reasons = list(d.reasons) + ([avail] if avail and avail != "available" else [])
     expires = now + timedelta(minutes=settings.quote_ttl_minutes)
     destination = req.destination if req.service == "transfer" else None
@@ -52,8 +54,11 @@ def create_quote(conn: psycopg.Connection, req: TripRequest, *, cat: Catalog, se
     alts: list[dict] = []
     if avail in AVAILABILITY_MESSAGES:
         alts = availability.alternatives(conn, cat, req, d.loaded_minutes, now, settings)
-        messages.append({"code": avail, "message": AVAILABILITY_MESSAGES[avail] +
-                         (" These times are open:" if alts else " Send a request and we will suggest an alternative.")})
+        if avail == "tight":
+            suffix = " Or reserve instantly at:" if alts else ""
+        else:
+            suffix = " These times are open:" if alts else " Send a request and we will suggest an alternative."
+        messages.append({"code": avail, "message": AVAILABILITY_MESSAGES[avail] + suffix})
     return {
         "quote_id": str(row["id"]),
         "amount_cents": d.amount_cents,
@@ -63,7 +68,8 @@ def create_quote(conn: psycopg.Connection, req: TripRequest, *, cat: Catalog, se
         "price_status": d.price_status,
         "expires_at": expires.isoformat(),
         "bookable": bookable,
-        "instant": bookable and instant_allowed(conn, eligible=True, needs_review=d.needs_review,
+        "instant": bookable and avail == "available" and instant_allowed(conn, eligible=True,
+                                                                          needs_review=d.needs_review,
                                                 pickup_at=req.pickup_at, now=now, s=settings),
         "needs_review": d.needs_review,
         "availability": avail,

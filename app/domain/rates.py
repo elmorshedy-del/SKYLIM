@@ -85,6 +85,11 @@ def return_minutes(cat: Catalog, place: Place) -> float:
     return _leg(cat, place, cat.base, place.crossing_min * 0.5)[1]
 
 
+def drive_minutes(cat: Catalog, a: Place, b: Place) -> float:
+    """Free-flow drive between two places (never less than the minimum repositioning time)."""
+    return max(cat.params["min_approach_min"], _leg(cat, a, b, max(a.crossing_min, b.crossing_min))[1])
+
+
 def introductory(cat: Catalog, list_cents: int, now: datetime) -> tuple[int, dict | None]:
     """Apply the time-boxed launch offer, if active, to a list price. Returns (amount, offer)."""
     offer = cat.params.get("introductory") or {}

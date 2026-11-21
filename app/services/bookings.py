@@ -18,12 +18,13 @@ import data
 
 from ..config import Settings
 from ..db import DRIVER_ID, VEHICLE_ID
-from ..domain.catalog import Catalog
+from ..domain.catalog import Catalog, get_catalog
 from ..domain.preferences import JourneyPreferences
+from ..domain.pricing import TripRequest
 from ..domain.status import ACTIVE_TRIP, Status, assert_transition
 from ..errors import Conflict, Invalid, NotFound
 from ..security import booking_ref, token_hash, trip_token
-from . import analytics, notifications
+from . import analytics, availability, notifications
 
 MIN_PAYMENT_WINDOW = timedelta(minutes=35)   # Stripe Checkout sessions must live >= 30 minutes
 
@@ -156,9 +157,16 @@ def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDe
     log_event(conn, booking["id"], "customer", None, Status.REQUESTED)
     if instant:
         held = {"vehicle_id": resources[0], "driver_id": resources[1]} if resources else {}
-        booking = approve(conn, booking["id"], now=now, settings=settings, actor="system",
-                          hold_minutes=settings.instant_hold_minutes, **held)
-    else:
+        try:
+            with conn.transaction():   # savepoint: a tight time falls back to a request, nothing half-written
+                booking = approve(conn, booking["id"], now=now, settings=settings, actor="system",
+                                  hold_minutes=settings.instant_hold_minutes, **held)
+        except Conflict as e:
+            if e.code != "needs_owner":
+                raise
+            conn.execute("UPDATE bookings SET instant = false WHERE id = %s", (booking["id"],))
+            booking, instant = get(conn, booking["id"]), False
+    if not instant:
         notifications.enqueue(conn, "request_received", booking)
     notifications.enqueue(conn, "owner_new_request", booking)
     return booking, token
@@ -182,6 +190,15 @@ def release_expired_holds(conn: psycopg.Connection, now: datetime) -> list[dict]
     return rows
 
 
+def _job(conn: psycopg.Connection, cat: Catalog, b: dict) -> availability.Job:
+    """The booking's place in the chauffeur's day: its own window, where it starts and ends, its risk."""
+    q = conn.execute("SELECT origin, destination, service FROM quotes WHERE id = %s", (b["quote_id"],)).fetchone()
+    req = TripRequest(service=q["service"], origin=q["origin"], destination=q["destination"],
+                      pickup_at=b["pickup_at"], passengers=b["passengers"], large_bags=b["large_bags"],
+                      hours=b["hours"])
+    return availability.job_for(cat, req, b["service_start"], b["service_end"])
+
+
 def approve(conn: psycopg.Connection, booking_id, *, now: datetime, settings: Settings,
             amount_cents: Optional[int] = None, adjust_reason: Optional[str] = None,
             vehicle_id=VEHICLE_ID, driver_id=DRIVER_ID, actor: str = "admin",
@@ -190,6 +207,10 @@ def approve(conn: psycopg.Connection, booking_id, *, now: datetime, settings: Se
 
     Overlap safety comes from the reservations exclusion constraints: if two
     approvals race for overlapping windows, PostgreSQL lets exactly one commit.
+    The room between trips (drives and buffers) is checked by availability.fit under a
+    per-chauffeur lock, so two approvals can never squeeze in next to each other.
+    A "tight" time (fits only if everything runs on time) needs the owner: the
+    instant path (actor="system") refuses it with code "needs_owner".
     """
     b = get(conn, booking_id, lock=True)
     assert_transition(b["status"], Status.PAYMENT_PENDING)
@@ -204,12 +225,23 @@ def approve(conn: psycopg.Connection, booking_id, *, now: datetime, settings: Se
     if hold_until - now < MIN_PAYMENT_WINDOW:
         raise Conflict("Too close to the trip to take online payment. Decline, or call the rider.",
                        code="too_late_for_payment")
+    cat = get_catalog()
+    job = _job(conn, cat, b)
+    conn.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"calendar:{driver_id}",))
+    verdict = availability.fit(conn, cat, job, now, settings, vehicle_id=vehicle_id, driver_id=driver_id)
+    if verdict not in availability.BOOKABLE:
+        raise Conflict("The car or driver is already reserved for an overlapping time.", code="slot_taken")
+    if verdict == "tight" and actor == "system":
+        raise Conflict("This time sits close to another trip and needs the owner's confirmation.",
+                       code="needs_owner")
     try:
         with conn.transaction():  # savepoint: an overlap must not poison the outer transaction
             conn.execute(
-                """INSERT INTO reservations (booking_id, vehicle_id, driver_id, during, kind, expires_at)
-                   VALUES (%s, %s, %s, tstzrange(%s, %s, '[)'), 'hold', %s)""",
-                (b["id"], vehicle_id, driver_id, b["service_start"], b["service_end"], hold_until))
+                """INSERT INTO reservations (booking_id, vehicle_id, driver_id, during, kind, expires_at,
+                                             start_place, end_place, risk)
+                   VALUES (%s, %s, %s, tstzrange(%s, %s, '[)'), 'hold', %s, %s, %s, %s)""",
+                (b["id"], vehicle_id, driver_id, b["service_start"], b["service_end"], hold_until,
+                 job.origin, job.end_place, job.risk))
     except psycopg.errors.ExclusionViolation:
         raise Conflict("The car or driver is already reserved for an overlapping time.", code="slot_taken")
 

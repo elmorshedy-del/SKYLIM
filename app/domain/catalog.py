@@ -55,6 +55,7 @@ class Catalog:
     home_base: str
     pricing_approved: bool
     pricing_version: str
+    scheduling: Mapping = field(default_factory=dict)
 
     @property
     def base(self) -> Place:
@@ -82,11 +83,16 @@ class Catalog:
         unknown = set(mod.OPERATIONS["authority"]) - set(ROUTE_CLASSES)
         if unknown:
             raise ValueError(f"OPERATIONS['authority'] has unknown route classes: {sorted(unknown)}")
+        scheduling = dict(getattr(mod, "SCHEDULING", {"buffer_after_min": {}, "heavy_days": {}}))
+        missing = {"airport_arrival", "hourly", "standard", "block"} - set(scheduling["buffer_after_min"])
+        if missing:
+            raise ValueError(f"SCHEDULING['buffer_after_min'] is missing {sorted(missing)}")
         pricing = dict(mod.PRICING)
         return cls(places=places, params=pricing, authority=dict(mod.OPERATIONS["authority"]),
                    vehicle=dict(mod.VEHICLE), driver=dict(mod.DRIVER), policy=dict(mod.POLICY),
                    amenities=dict(mod.AMENITIES), home_base=home,
-                   pricing_approved=bool(pricing["approved"]), pricing_version=str(pricing["version"]))
+                   pricing_approved=bool(pricing["approved"]), pricing_version=str(pricing["version"]),
+                   scheduling=scheduling)
 
 
 @lru_cache(maxsize=1)

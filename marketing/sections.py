@@ -103,6 +103,8 @@ def quote_panel(preset: tuple[str, str] = ("", "")) -> str:
         <div class="slots">
           <p class="slots-msg" id="q-slots-msg" aria-live="polite">Choose your journey and date to see available pickup times.</p>
           <div class="slot-grid" id="q-slot-grid" role="group" aria-label="Available pickup times, New York time"></div>
+          <p class="slots-legend" id="q-slots-legend" hidden>Times marked <b>on request</b> sit close to another
+            trip — we confirm them personally, usually within the hour.</p>
           <p class="limited">{icon('clock', 14)}{e(data.OPERATIONS['availability_note'])}</p>
         </div>
         <div class="steppers three">{_stepper('q-pax', 'Guests', 1, 1, data.VEHICLE['max_passengers'])}

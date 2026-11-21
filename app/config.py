@@ -121,7 +121,7 @@ def get_settings() -> Settings:
         instant_hold_minutes=_int("INSTANT_HOLD_MINUTES", 35),
         min_notice_minutes=_int("MIN_NOTICE_MINUTES", 180),
         instant_min_notice_minutes=_int("INSTANT_MIN_NOTICE_MINUTES", 480),
-        max_daily_minutes=_int("MAX_DAILY_MINUTES", 660),
+        max_daily_minutes=_int("MAX_DAILY_MINUTES", 540),   # time on trips; drives between them come on top
         max_advance_days=_int("MAX_ADVANCE_DAYS", 180),
         quote_ttl_minutes=_int("QUOTE_TTL_MINUTES", 45),
         free_cancel_hours=_int("FREE_CANCEL_HOURS", 24),

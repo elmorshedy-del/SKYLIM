@@ -101,6 +101,22 @@ tags are injected at serve time with validated IDs and Consent Mode v2 defaults.
 - **Needs attention**: late payments, refund failures, luggage or child-seat checks.
 - **Last 30 days**: funnel, revenue, lost demand, channels; Google Ads conversion CSV.
 
+## 7a. How availability works (back-to-back trips)
+
+Each trip blocks only its own time: on site 10 minutes before pickup until the drop-off. The next trip starts
+from the previous drop-off — drive time at that hour, plus a buffer for what can't be predicted
+(`data.SCHEDULING`): **60 min after an airport pickup** (flights land late), **30 min** after anything else.
+
+| A requested time… | The client sees | You |
+|---|---|---|
+| fits with the buffer | an ordinary time → instant payment | nothing to do |
+| fits only if everything runs on time | "on request" | approve or decline in `/admin` (check the flight and traffic) |
+| doesn't fit | not offered (nearest open times suggested) | — |
+
+Heavy-traffic days (`SCHEDULING["heavy_days"]`, e.g. the day before Thanksgiving) stretch every drive and trip.
+The daily cap (`MAX_DAILY_MINUTES`, default 540) counts time on trips; drives come on top. To rest, block time
+in `/admin`. Tune buffers from real trips: if you are often early, shorten them; if ever late, lengthen them.
+
 ## 8. Changing content and prices
 
 | Change | Where | Then |

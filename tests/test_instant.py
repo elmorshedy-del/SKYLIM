@@ -60,7 +60,7 @@ def test_two_clients_racing_for_one_slot_only_one_holds_it(client):
 
 
 def test_daily_cap_protects_the_chauffeur(now, settings):
-    tight = replace(settings, max_daily_minutes=200)       # less than one Bergen -> JFK round trip
+    tight = replace(settings, max_daily_minutes=60)        # less than one Bergen -> JFK trip's own time
     req = TripRequest(service="transfer", origin="bergen", destination="jfk",
                       pickup_at=parse_local_pickup("2026-11-25T06:30"), passengers=2, large_bags=2)
     with tx() as conn:

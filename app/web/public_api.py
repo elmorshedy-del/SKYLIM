@@ -219,7 +219,8 @@ def create_booking(body: BookingIn, now: datetime = Depends(clock)) -> dict:
     s = get_settings()
     with tx() as conn:
         q = conn.execute("SELECT * FROM quotes WHERE id = %s", (body.quote_id,)).fetchone()
-        instant = bool(q) and quotes.instant_allowed(conn, eligible=q["eligible"], needs_review=q["needs_review"],
+        instant = bool(q) and q["availability"] == "available" and quotes.instant_allowed(
+            conn, eligible=q["eligible"], needs_review=q["needs_review"],
                                                      pickup_at=q["pickup_at"], now=now, s=s)
         b, token = bookings.create(
             conn, quote_id=body.quote_id,

@@ -36,6 +36,8 @@ tools/make_images.py    renders static/og.png (share image) and static/logo.png 
 | Invariant | Enforcement |
 |---|---|
 | A vehicle or chauffeur never holds two overlapping reservations | GiST exclusion constraints on `reservations` |
+| A trip is offered only if the chauffeur can get there from the previous drop-off (and on to the next pickup) | `availability.fit`, re-run by `bookings.approve` under a per-chauffeur advisory lock |
+| A time inside the buffer for the unpredictable is never charged instantly — the owner confirms it | `fit` → "tight"; instant path refuses it (`needs_owner`) and falls back to a request |
 | The browser never sets a price | Request models reject unknown fields; amount comes from the stored quote |
 | Payment confirmed only by a verified, matching, first-seen Stripe event | `services/payments.py`, `stripe_events` primary key |
 | Test events never confirm production bookings (and vice versa) | livemode check in `handle_event` |
