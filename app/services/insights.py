@@ -19,8 +19,7 @@ def funnel(conn: psycopg.Connection, now: datetime, days: int = 30) -> dict:
                   count(*) FILTER (WHERE availability IN ('unavailable', 'day_full')) AS lost_full,
                   count(*) FILTER (WHERE 'authority_arranged' = ANY(decision_reasons)
                                       OR 'custom_route' = ANY(decision_reasons)) AS needs_arranging
-           FROM quotes WHERE created_at >= %s
-             AND COALESCE(attribution->>'source', '') <> 'test_trip'""", (since,)).fetchone()
+           FROM quotes WHERE created_at >= %s AND NOT is_test""", (since,)).fetchone()
     b = conn.execute(
         """SELECT count(*) AS reservations,
                   count(*) FILTER (WHERE instant) AS instant,

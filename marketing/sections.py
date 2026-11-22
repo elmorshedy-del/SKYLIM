@@ -97,6 +97,9 @@ def quote_panel(preset: tuple[str, str] = ("", "")) -> str:
           <select id="q-to">{_place_options('Destination', destination)}</select></label>
         <label class="field" data-for="hourly" hidden><span class="sr">Duration</span>{icon('clock', 20)}
           <select id="q-hours">{hours}</select></label>
+        <label class="mock-reservation" id="q-mock-row" hidden>
+          <input type="checkbox" id="q-mock"> <span><b>Mock reservation · ${data.TEST_TRIP['amount_cents'] / 100:.2f}</b>
+            <small>Owner only — follow the customer journey without booking a real ride.</small></span></label>
         <label class="field"><span class="sr">Pickup date</span>{icon('calendar', 20)}
           <input id="q-date" type="date" required></label>
         <input type="hidden" id="q-when">

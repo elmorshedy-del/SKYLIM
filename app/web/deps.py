@@ -16,7 +16,7 @@ import data
 from marketing.brand import wordmark
 from ..config import LOCAL_TZ, RECOMMENDED_GATES, get_settings
 from ..domain.status import LABELS, Status
-from ..security import ADMIN_COOKIE, read_admin_session
+from ..security import ADMIN_COOKIE, MOCK_COOKIE, read_admin_session, read_mock_session
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 TEMPLATES.env.globals.update(brand=data.BRAND, brand_wordmark=Markup(wordmark()), driver=data.DRIVER,
@@ -85,6 +85,10 @@ def same_origin(request: Request) -> bool:
 
 def is_admin(request: Request) -> bool:
     return read_admin_session(request.cookies.get(ADMIN_COOKIE))
+
+
+def can_mock(request: Request) -> bool:
+    return bool(data.TEST_TRIP.get("enabled")) and read_mock_session(request.cookies.get(MOCK_COOKIE))
 
 
 def require_admin(request: Request) -> None:

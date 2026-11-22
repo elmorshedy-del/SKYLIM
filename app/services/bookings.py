@@ -17,7 +17,7 @@ from psycopg.types.json import Jsonb
 import data
 
 from ..config import Settings
-from ..db import DRIVER_ID, VEHICLE_ID
+from ..db import DRIVER_ID, VEHICLE_ID, TEST_DRIVER_ID, TEST_VEHICLE_ID
 from ..domain.catalog import Catalog, get_catalog
 from ..domain.preferences import JourneyPreferences
 from ..domain.pricing import TripRequest
@@ -109,6 +109,8 @@ def create(conn: psycopg.Connection, *, quote_id, contact: Contact, trip: TripDe
     q = conn.execute("SELECT * FROM quotes WHERE id = %s FOR UPDATE", (quote_id,)).fetchone()
     if not q:
         raise NotFound("Quote not found — please price the trip again.")
+    if q["is_test"] != is_test:
+        raise Conflict("The quote belongs to a different reservation mode.", code="quote_mode")
     if q["expires_at"] <= now:
         raise Conflict("This price has expired. Please price the trip again.", code="quote_expired")
     if not q["eligible"] or q["amount_cents"] is None:
@@ -214,6 +216,10 @@ def approve(conn: psycopg.Connection, booking_id, *, now: datetime, settings: Se
     """
     b = get(conn, booking_id, lock=True)
     assert_transition(b["status"], Status.PAYMENT_PENDING)
+    if b["is_test"]:
+        # A mock can never consume or change the price of a client reservation.
+        vehicle_id, driver_id = TEST_VEHICLE_ID, TEST_DRIVER_ID
+        amount_cents, adjust_reason = b["amount_cents"], None
     amount = b["amount_cents"] if amount_cents is None else amount_cents
     if amount <= 0:
         raise Invalid("Price must be positive.")
@@ -320,7 +326,7 @@ def advance(conn: psycopg.Connection, booking_id, target: Status, *, now: dateti
                               driver_name=(d or {}).get("display_name"))
     if target == Status.COMPLETED:
         release_reservation(conn, b["id"], now, "completed")
-        if data.BRAND.get("review_url"):     # reviews drive local ranking and conversion (see docs/SEO-PLAN.md)
+        if not row["is_test"] and data.BRAND.get("review_url"):     # only real customers receive review requests
             notifications.enqueue(conn, "review_request", row)
         if retention_hours <= 0:
             conn.execute("DELETE FROM positions WHERE booking_id = %s", (b["id"],))

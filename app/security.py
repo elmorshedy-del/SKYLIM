@@ -17,6 +17,7 @@ import time
 from .config import get_settings
 
 ADMIN_COOKIE = "mr_admin"
+MOCK_COOKIE = "mr_mock"
 ADMIN_SESSION_SECONDS = 12 * 3600
 
 
@@ -75,24 +76,41 @@ def _sign(payload: bytes) -> str:
     return base64.urlsafe_b64encode(hmac.new(key, payload, hashlib.sha256).digest()).decode().rstrip("=")
 
 
-def make_admin_session() -> str:
+def _make_session(scope: bytes = b"") -> str:
     body = base64.urlsafe_b64encode(json.dumps(
         {"exp": int(time.time()) + ADMIN_SESSION_SECONDS, "n": secrets.token_hex(8)}
     ).encode()).decode().rstrip("=")
-    return body + "." + _sign(body.encode())
+    return body + "." + _sign(scope + body.encode())
 
 
-def read_admin_session(cookie: str | None) -> bool:
+def _read_session(cookie: str | None, scope: bytes = b"") -> bool:
     if not cookie or "." not in cookie or not get_settings().secret_key:
         return False
     body, sig = cookie.rsplit(".", 1)
-    if not hmac.compare_digest(sig, _sign(body.encode())):
+    if not hmac.compare_digest(sig, _sign(scope + body.encode())):
         return False
     try:
         data = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
     except Exception:
         return False
     return int(data.get("exp", 0)) > time.time()
+
+
+def make_admin_session() -> str:
+    return _make_session()
+
+
+def read_admin_session(cookie: str | None) -> bool:
+    return _read_session(cookie)
+
+
+def make_mock_session() -> str:
+    """Separate, API-scoped capability; it can never authorize admin routes."""
+    return _make_session(b"mock:")
+
+
+def read_mock_session(cookie: str | None) -> bool:
+    return _read_session(cookie, b"mock:")
 
 
 if __name__ == "__main__":  # pragma: no cover - operator utility

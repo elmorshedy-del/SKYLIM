@@ -11,6 +11,7 @@
   var PAGE = JSON.parse(($('#page-config') || {}).textContent || '{}');
   var ET = 'America/New_York';
   var S = { service: 'transfer', quote: null, trip: null, cfg: null };
+  function mockSelected() { var m = $('#q-mock'); return !!(m && m.checked && S.cfg && S.cfg.mock_enabled); }
 
   /* ============================================================ analytics */
   var store = {
@@ -19,6 +20,7 @@
   };
   window.dataLayer = window.dataLayer || [];
   function track(event, params) {
+    if (mockSelected()) return;
     var p = params || {}; p.event = event; window.dataLayer.push(p);
     // Direct GA4 (no Tag Manager) only understands gtag() calls, so mirror the event.
     if (window.__mrDirectGA && typeof window.gtag === 'function') {
@@ -28,6 +30,7 @@
     }
   }
   function trackEcommerce(event, q, extra) {
+    if (q.mock) return;
     window.dataLayer.push({ ecommerce: null });
     var item = { item_id: q.route.service === 'hourly' ? 'hourly-' + q.route.hours + 'h' : S.trip.origin + '-' + S.trip.destination,
       item_name: routeLabel(q), item_category: q.route.service, price: (q.amount_cents || 0) / 100, quantity: 1 };
@@ -66,7 +69,7 @@
   /* ================================================================== api */
   function api(method, url, body) {
     return fetch(url, { method: method, headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: body ? JSON.stringify(body) : undefined, credentials: 'omit' }).then(function (r) {
+      body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin', cache: 'no-store' }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok) {
           var d = j.detail;
@@ -78,7 +81,11 @@
       });
     });
   }
-  api('GET', '/api/config').then(function (c) { S.cfg = c; }).catch(function () {});
+  api('GET', '/api/config').then(function (c) {
+    S.cfg = c;
+    var mockRow = $('#q-mock-row');
+    if (mockRow) mockRow.hidden = !c.mock_enabled;
+  }).catch(function () {});
 
   /* ================================================================ dates */
   function etParts(d) {
@@ -161,7 +168,7 @@
     var body = { service: S.service, origin: from, destination: S.service === 'transfer' ? to : null,
       hours: S.service === 'hourly' ? +$('#q-hours').value : null, pickup_local: when.value,
       passengers: +$('#q-pax').textContent, large_bags: +$('#q-bags').textContent,
-      carry_ons: +$('#q-carry').textContent, session_id: session.id, attribution: attribution() };
+      carry_ons: +$('#q-carry').textContent, session_id: session.id, attribution: attribution(), mock: mockSelected() };
     api('POST', '/api/quotes', body).then(function (q) {
       S.quote = q; S.trip = body;
       renderQuote(q);
@@ -176,7 +183,7 @@
     var was = $('#r-was'), offer = $('#r-offer');
     was.textContent = q.offer ? money(q.list_amount_cents) : '';
     offer.hidden = !q.offer; offer.textContent = q.offer ? q.offer.label + ' — ' + q.offer.percent_off + '% off' : '';
-    $('#r-meta').textContent = fmtWhen(q.pickup_at) + ' · ' + (q.price_status === 'custom' ? 'We will confirm a price personally'
+    $('#r-meta').textContent = fmtWhen(q.pickup_at) + ' · ' + (q.mock ? 'Mock reservation — owner test' : q.price_status === 'custom' ? 'We will confirm a price personally'
       : 'All-inclusive' + (q.price_status === 'estimate' ? ' · confirmed before payment' : ''));
     var msgs = $('#r-msgs'); msgs.innerHTML = '';
     q.messages.filter(function (m) { return m.code !== 'estimate'; }).forEach(function (m) {
@@ -243,7 +250,7 @@
     api('POST', '/api/slots', { service: S.service, origin: from, destination: S.service === 'transfer' ? to : null,
       hours: S.service === 'hourly' ? +$('#q-hours').value : null, date: dateIn.value,
       passengers: +$('#q-pax').textContent, large_bags: +$('#q-bags').textContent,
-      carry_ons: +$('#q-carry').textContent }).then(function (r) {
+      carry_ons: +$('#q-carry').textContent, mock: mockSelected() }).then(function (r) {
       if (seq !== slotSeq) return;
       if (r.messages.length) { slotsMessage(r.messages.map(function (m) { return m.message; }).join(' ')); return; }
       if (!r.slots.length) { slotsMessage('Fully booked on this day. Try another date, or call or text ' + r.phone + '.'); return; }
@@ -268,7 +275,7 @@
     requestQuote();
   }
   if (form && slotGrid) {
-    ['#q-from', '#q-to', '#q-hours', '#q-date'].forEach(function (id) { $(id).addEventListener('change', loadSlots); });
+    ['#q-from', '#q-to', '#q-hours', '#q-date', '#q-mock'].forEach(function (id) { if ($(id)) $(id).addEventListener('change', loadSlots); });
     $$('.mt').forEach(function (t) { t.addEventListener('click', loadSlots); });
     loadSlots();                                  /* landing pages arrive with the route pre-selected */
   }

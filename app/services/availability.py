@@ -122,7 +122,7 @@ def fit(conn: psycopg.Connection, cat: Catalog, job: Job, now: datetime, s: Sett
 
 
 def alternatives(conn: psycopg.Connection, cat: Catalog, req: TripRequest, loaded_minutes: int, now: datetime,
-                 s: Settings, limit: int = 3) -> list[dict]:
+                 s: Settings, limit: int = 3, *, vehicle_id=VEHICLE_ID, driver_id=DRIVER_ID) -> list[dict]:
     """Nearest pickup times that can be reserved instantly, so a busy or tight time is never a dead end."""
     found: list[dict] = []
     earliest = now + timedelta(minutes=s.min_notice_minutes)
@@ -132,7 +132,7 @@ def alternatives(conn: psycopg.Connection, cat: Catalog, req: TripRequest, loade
             continue
         alt = replace(req, pickup_at=at)
         start, end = service_window(cat, alt, loaded_minutes)
-        if fit(conn, cat, job_for(cat, alt, start, end), now, s) == "available":
+        if fit(conn, cat, job_for(cat, alt, start, end), now, s, vehicle_id, driver_id) == "available":
             local = at.astimezone(LOCAL_TZ)
             found.append({"pickup_local": local.strftime("%Y-%m-%dT%H:%M"),
                           "label": local.strftime("%-I:%M %p").lower().replace(":00", "")})
@@ -142,7 +142,7 @@ def alternatives(conn: psycopg.Connection, cat: Catalog, req: TripRequest, loade
 
 
 def day_slots(conn: psycopg.Connection, cat: Catalog, req: TripRequest, day: date, now: datetime,
-              s: Settings, slots: dict) -> list[dict]:
+              s: Settings, slots: dict, *, vehicle_id=VEHICLE_ID, driver_id=DRIVER_ID) -> list[dict]:
     """Every pickup time on `day` (New York) that can be reserved online, appointment-style.
 
     A time is offered if it passes the same rules as a quote — route, capacity, notice, advance limit
@@ -160,7 +160,7 @@ def day_slots(conn: psycopg.Connection, cat: Catalog, req: TripRequest, day: dat
             slot_req = replace(req, pickup_at=at)
             d = decide_quote(cat, slot_req, now=now, min_notice_minutes=s.min_notice_minutes,
                              max_advance_days=s.max_advance_days)
-            verdict = fit(conn, cat, job_from_decision(cat, slot_req, d), now, s) if d.eligible else None
+            verdict = fit(conn, cat, job_from_decision(cat, slot_req, d), now, s, vehicle_id, driver_id) if d.eligible else None
             if verdict in BOOKABLE:
                 out.append({"pickup_local": at.strftime("%Y-%m-%dT%H:%M"), "label": at.strftime("%-I:%M %p").lower(),
                             "mode": "instant" if verdict == "available" else "request"})

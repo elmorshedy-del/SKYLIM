@@ -17,13 +17,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 import data
 
-from ..config import LOCAL_TZ, get_settings, launch_gates, payments_live
+from ..config import LOCAL_TZ, get_settings, launch_gates, payments_live, payments_possible
 from ..db import DRIVER_ID, VEHICLE_ID, tx
 from ..domain.catalog import get_catalog
 from ..domain.preferences import JourneyPreferences
 from ..domain.status import OPERATIONAL_NEXT, Status
 from ..errors import AppError
-from ..security import ADMIN_COOKIE, ADMIN_SESSION_SECONDS, make_admin_session, verify_password
+from ..security import (ADMIN_COOKIE, MOCK_COOKIE, ADMIN_SESSION_SECONDS, make_admin_session,
+                        make_mock_session, verify_password)
 from ..services import bookings, flags, insights, payments, test_trip
 from ..services.notifications import trip_url
 from .deps import TEMPLATES, clock, is_admin, rate_limit, require_admin, same_origin
@@ -54,6 +55,9 @@ def login(request: Request, password: str = Form(...)):
     resp = RedirectResponse("/admin", status_code=303, headers=NO_STORE)
     resp.set_cookie(ADMIN_COOKIE, make_admin_session(), max_age=ADMIN_SESSION_SECONDS, httponly=True,
                     secure=s.cookie_secure, samesite="strict", path="/admin")
+    if test_trip.enabled():
+        resp.set_cookie(MOCK_COOKIE, make_mock_session(), max_age=ADMIN_SESSION_SECONDS, httponly=True,
+                        secure=s.cookie_secure, samesite="strict", path="/api")
     return resp
 
 
@@ -61,6 +65,7 @@ def login(request: Request, password: str = Form(...)):
 def logout():
     resp = RedirectResponse("/admin/login", status_code=303, headers=NO_STORE)
     resp.delete_cookie(ADMIN_COOKIE, path="/admin")
+    resp.delete_cookie(MOCK_COOKIE, path="/api")
     return resp
 
 
@@ -84,6 +89,10 @@ def dashboard(request: Request, now: datetime = Depends(clock)):
             """SELECT o.* FROM outbox o LEFT JOIN bookings b ON b.id = o.booking_id
                WHERE o.status IN ('manual', 'failed') AND NOT COALESCE(b.is_test, false)
                ORDER BY o.created_at DESC LIMIT 30""").fetchall()
+        test_emails = conn.execute(
+            """SELECT b.ref, o.kind, o.status, o.sent_at, o.last_error FROM outbox o
+               JOIN bookings b ON b.id = o.booking_id WHERE b.is_test
+               ORDER BY o.created_at DESC, o.id DESC LIMIT 20""").fetchall()
         inquiries = conn.execute("SELECT * FROM inquiries WHERE handled_at IS NULL ORDER BY created_at DESC "
                                  "LIMIT 30").fetchall()
         blocks = conn.execute("""SELECT id, lower(during) AS starts, upper(during) AS ends, note FROM reservations
@@ -106,7 +115,7 @@ def dashboard(request: Request, now: datetime = Depends(clock)):
     }
     return TEMPLATES.TemplateResponse(request, "admin.html", {
         "g": groups, "now": now, "vehicle": vehicle, "driver": driver, "trackers": trackers,
-        "outbox": outbox, "inquiries": inquiries, "gates": launch_gates(s), "payments_live": payments_live(s),
+        "outbox": outbox, "test_emails": test_emails, "inquiries": inquiries, "gates": launch_gates(s), "payments_live": payments_live(s),
         "test_trip": {"enabled": test_trip.enabled(), "ready": test_trip.readiness(s)[0],
                       "reason": test_trip.readiness(s)[1], "amount_cents": data.TEST_TRIP["amount_cents"]},
         "blocks": blocks, "instant_on": instant_on, "stats": stats,
@@ -119,11 +128,12 @@ def dashboard(request: Request, now: datetime = Depends(clock)):
 def approve(booking_id: uuid.UUID, amount: Optional[str] = Form(None), reason: Optional[str] = Form(None),
             now: datetime = Depends(clock)):
     s = get_settings()
-    if not payments_live(s):
-        return _back("Online payment isn't live yet — finish the launch gates first.", error=True)
     try:
         cents = round(float(amount) * 100) if amount and amount.strip() else None
         with tx() as conn:
+            existing = bookings.get(conn, booking_id, lock=True)
+            if not (payments_possible(s) if existing["is_test"] else payments_live(s)):
+                return _back("Online payment isn't available yet — check the launch gates and Stripe.", error=True)
             b = bookings.approve(conn, booking_id, now=now, settings=s, amount_cents=cents, adjust_reason=reason)
     except (AppError, ValueError) as e:
         return _back(getattr(e, "message", str(e)), error=True)
