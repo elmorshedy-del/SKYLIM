@@ -51,8 +51,8 @@ def money(cents: int) -> str:
 def fill(text: str) -> str:
     """Replace price tokens in copy with live figures (see landing_pages.py)."""
     def journey(m: re.Match) -> str:
-        list_cents, today, _ = journey_price(m.group(1), m.group(2))
-        return money(today) if list_cents else "a price on request"
+        list_cents, _, _ = journey_price(m.group(1), m.group(2))
+        return money(list_cents) if list_cents else "a price on request"
     text = re.sub(r"\{([a-z-]+)>([a-z-]+)\}", journey, text)
     p = data.PRICING
     return (text.replace("{hourly}", money(p["hourly_cents"]))
@@ -201,8 +201,10 @@ def pricing_md() -> str:
         "Wi-Fi; up to 6 guests.",
         "", f"- **By the hour:** ${data.PRICING['hourly_cents'] // 100} per hour, gratuity included, "
         f"{data.PRICING['hourly_min_hours']}-hour minimum.",
-        "- **Point to point:** priced on time and distance for the specific journey; instant quote at "
-        f"{SITE}/#reserve", "", "## Popular journeys (one way)", "", "| Journey | From |", "|---|---|"]
+        f"- **Point to point:** ${data.PRICING['tariff']['base_cents'] // 100} plus "
+        f"${data.PRICING['tariff']['per_mile_cents'] / 100:.2f} per road mile of the journey, rounded to $5, "
+        "all-inclusive and the same in either direction; very long journeys are capped at the round trip by the "
+        f"hour. Instant quote at {SITE}/#reserve", "", "## Popular journeys (one way)", "", "| Journey | From |", "|---|---|"]
     for a, b in data.POPULAR_JOURNEYS:
         list_cents, _, _ = journey_price(a, b)
         lines.append(f"| {cat.places[a].name} → {cat.places[b].name} | "

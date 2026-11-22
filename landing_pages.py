@@ -395,7 +395,7 @@ NEW_JERSEY = {
     "sections": [
         ("Car service across New Jersey", [
             "Whether you start in Jersey City or Hoboken, Montclair, Morristown, Summit or Princeton, each journey is "
-            "priced for its own time and distance — so a short run into Midtown costs what it should, and a long "
+            "priced by its own road miles — so a short run into Midtown costs what it should, and a long "
             "one to JFK is quoted before you go. Journeys that stay within New Jersey, such as home to Newark, "
             "are arranged personally.",
             "In New Jersey, limo, car service and chauffeur are used interchangeably. What matters is what "

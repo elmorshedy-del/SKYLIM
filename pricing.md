@@ -4,23 +4,23 @@
 
 Point-to-point prices are per vehicle, in USD, and include tolls, congestion charges, airport parking and gratuity. Vehicle: Cadillac Escalade with second-row captain's chairs, panoramic sunroof and onboard Wi-Fi; up to 6 guests.
 
-- **By the hour:** $145 per hour, gratuity included, 3-hour minimum.
-- **Point to point:** priced on time and distance for the specific journey; instant quote at https://celesteluxurylimo.com/#reserve
+- **By the hour:** $150 per hour, gratuity included, 3-hour minimum.
+- **Point to point:** $150 plus $6.94 per road mile of the journey, rounded to $5, all-inclusive and the same in either direction; very long journeys are capped at the round trip by the hour. Instant quote at https://celesteluxurylimo.com/#reserve
 
 ## Popular journeys (one way)
 
 | Journey | From |
 |---|---|
-| Manhattan → JFK International | $255 |
-| Manhattan → Newark Liberty International (EWR) | $230 |
-| Teterboro (TEB) — private aviation → Manhattan | $200 |
-| Manhattan → LaGuardia (LGA) | $195 |
-| Bergen County → JFK International | $315 |
-| Newark Liberty International (EWR) → Manhattan | $230 |
-| Hudson County → Manhattan | $155 |
-| Brooklyn → Newark Liberty International (EWR) | $260 |
-| Essex County → LaGuardia (LGA) | $285 |
-| Manhattan → Philadelphia, PA | $555 |
+| Manhattan → JFK International | $275 |
+| Manhattan → Newark Liberty International (EWR) | $265 |
+| Teterboro (TEB) — private aviation → Manhattan | $245 |
+| Manhattan → LaGuardia (LGA) | $220 |
+| Bergen County → JFK International | $345 |
+| Newark Liberty International (EWR) → Manhattan | $265 |
+| Hudson County → Manhattan | $220 |
+| Brooklyn → Newark Liberty International (EWR) | $280 |
+| Essex County → LaGuardia (LGA) | $325 |
+| Manhattan → Philadelphia, PA | $785 |
 
 ## Pages
 

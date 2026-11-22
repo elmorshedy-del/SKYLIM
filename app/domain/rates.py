@@ -1,10 +1,11 @@
-"""The pricing cost model — one implementation shared by live quotes and tools/rate_model.py.
+"""Pricing — one implementation shared by live quotes, the website and tools/rate_model.py.
 
-A chauffeured vehicle sells *committed time*: the drive out to the pickup, the
-journey at the traffic of that hour, curbside time and the drive back to base.
-Price = committed hours x target rate + running cost per mile + tolls + a share
-of fixed costs, grossed up for card fees and rounded up to the next $5.
-Hourly service is a published all-inclusive rate with a minimum.
+A journey's regular price follows the market's own structure (data.BENCHMARKS): a base plus a rate per
+road mile of the client's journey, all-in, the same in either direction — calibrated on the benchmark's
+published Escalade-class prices in every region. Beyond the benchmark's range the market prices by time,
+so a long journey costs the round trip at the hourly rate if that is lower. A cost floor (committed
+vehicle time x target rate + running cost + tolls + fixed share, grossed up for card fees) guarantees a
+journey is never sold below what it costs. Hourly service is a published all-inclusive rate with a minimum.
 """
 from __future__ import annotations
 
@@ -26,6 +27,9 @@ class Estimate:
     committed_minutes: int     # everything the vehicle is unavailable for
     miles: int
     tolls_cents: int
+    road_miles: float = 0.0    # the client's journey, as priced
+    rule: str = "cost"         # what set the price: tariff | by_time | cost_floor | min_fare
+    cost_cents: int = 0        # the cost floor for this journey
 
 
 def _leg(cat: Catalog, a: Place, b: Place, crossing: float = 0) -> tuple[float, float]:
@@ -85,16 +89,65 @@ def transfer(cat: Catalog, origin: Place, dest: Place) -> Estimate:
                     committed_minutes=round(committed), miles=round(miles), tolls_cents=tolls)
 
 
+def road_miles(cat: Catalog, a: Place, b: Place) -> float:
+    """Driving distance of the client's journey: the benchmark's published route distance where one is
+    recorded (PRICING["road_miles"]), otherwise straight line x a road factor fitted on published routes
+    (short urban trips wind more than long highway runs)."""
+    if a.code == b.code:
+        return 0.0
+    p = cat.params
+    known = p.get("road_miles", {})
+    for key in ((a.code, b.code), (b.code, a.code)):
+        if key in known:
+            return float(known[key])
+    # places whose roads north all funnel through one corridor (the Jersey Shore around Raritan Bay)
+    via = p.get("road_via", {})
+    for here, there in ((a, b), (b, a)):
+        if here.code in via and there.lat > via[here.code][0]:
+            w = tuple(via[here.code])
+            return _road(p, here.point, w) + _road(p, w, there.point)
+    return _road(p, a.point, b.point)
+
+
+def _road(p, x: tuple[float, float], y: tuple[float, float]) -> float:
+    s = geo.haversine_mi(x, y)
+    return s * (p["road_factor"] + p["road_factor_near"] * math.exp(-s / p["road_factor_scale_mi"]))
+
+
+def _round5(cents: float) -> int:
+    return int(math.floor(cents / 500 + 0.5) * 500)
+
+
+def market_price(cat: Catalog, a: Place, b: Place, cost_cents: int) -> tuple[int, str, float]:
+    """(regular price in cents, the rule that set it, road miles) for a journey between two places."""
+    p, t = cat.params, cat.params["tariff"]
+    miles = road_miles(cat, a, b)
+    candidates = {"tariff": t["base_cents"] + t["per_mile_cents"] * miles}
+    # long journeys: the round trip at the hourly rate (the market prices distance work by time)
+    loaded = _leg(cat, a, b, max(a.crossing_min, b.crossing_min))[1]
+    candidates["by_time"] = (p["hourly_cents"] * (2 * loaded + t["turnaround_min"]) / 60
+                             + tolls_cents(cat, a, b, 2 * miles))
+    rule = min(candidates, key=candidates.get)
+    cents = _round5(candidates[rule])
+    if cents < cost_cents:
+        rule, cents = "cost_floor", cost_cents
+    if cents < p["min_fare_cents"]:
+        rule, cents = "min_fare", int(p["min_fare_cents"])
+    return cents, rule, miles
+
+
 def journey(cat: Catalog, a: Place, b: Place) -> Estimate:
     """The price of a journey between two places — the same in either direction, as the market quotes
-    airport transfers. It averages what each direction costs, so an airport pickup's waiting time and
-    parking are shared with the drop-off instead of loading one direction."""
+    airport transfers. Committed time, miles and tolls average both directions (an airport pickup's waiting
+    time and parking are shared with the drop-off); the price follows market_price."""
     there, back = transfer(cat, a, b), transfer(cat, b, a)
-    cents = int(max(cat.params["min_fare_cents"], math.ceil((there.cents + back.cents) / 2 / 500) * 500))
+    cost = int(math.ceil((there.cents + back.cents) / 2 / 500) * 500)
+    cents, rule, miles = market_price(cat, a, b, cost)
     return Estimate(cents=cents, loaded_minutes=there.loaded_minutes,
                     committed_minutes=round((there.committed_minutes + back.committed_minutes) / 2),
                     miles=round((there.miles + back.miles) / 2),
-                    tolls_cents=round((there.tolls_cents + back.tolls_cents) / 2))
+                    tolls_cents=round((there.tolls_cents + back.tolls_cents) / 2),
+                    road_miles=round(miles, 1), rule=rule, cost_cents=cost)
 
 
 def hourly(cat: Catalog, hours: float) -> int:
@@ -123,5 +176,6 @@ def introductory(cat: Catalog, list_cents: int, now: datetime) -> tuple[int, dic
     ends = datetime.strptime(offer["ends_local"], "%Y-%m-%dT%H:%M").replace(tzinfo=LOCAL_TZ)
     if now > ends:
         return list_cents, None
-    amount = int(list_cents * (100 - offer["percent_off"]) / 100) // 100 * 100   # whole dollars
+    # rounded down to $5, so the discount is never less than the percentage shown
+    amount = int(list_cents * (100 - offer["percent_off"]) / 100) // 500 * 500
     return amount, {"label": offer["label"], "percent_off": offer["percent_off"], "ends": ends.isoformat()}

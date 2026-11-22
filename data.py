@@ -137,7 +137,8 @@ SERVICES = [
 # ------------------------------------------------------------------ places
 # Bookable pickup and destination areas. Exact addresses are taken at booking; these
 # drive price, timing and authority. mta = MTA bridge/tunnel crossings each way from NJ.
-PLACE_GROUPS = ["Airports & private aviation", "New York City", "New Jersey", "Beyond"]
+PLACE_GROUPS = ["Airports & private aviation", "New York City", "New Jersey", "Long Island",
+                "Westchester & Hudson Valley", "Connecticut", "Further afield"]
 PLACES = [
     {"code": "ewr", "name": "Newark Liberty International (EWR)", "short": "Newark (EWR)", "kind": "airport",
      "state": "NJ", "group": "Airports & private aviation", "lat": 40.6895, "lon": -74.1745, "crossing_min": 10},
@@ -206,20 +207,47 @@ PLACES = [
      "group": "New Jersey", "region": "South Jersey", "lat": 39.43, "lon": -74.55, "towns": ["Atlantic City", "Egg Harbor Township", "Hammonton", "Galloway", "Ventnor", "Brigantine"]},
     {"code": "cape-may", "name": "Cape May County", "short": "Cape May", "kind": "area", "state": "NJ",
      "group": "New Jersey", "region": "South Jersey", "lat": 39.08, "lon": -74.82, "towns": ["Cape May", "Wildwood", "Ocean City", "Sea Isle City", "Avalon", "Stone Harbor"]},
-    {"code": "westchester", "name": "Westchester County, NY", "short": "Westchester", "kind": "area", "state": "NY",
-     "group": "Beyond", "lat": 41.0340, "lon": -73.7629, "crossing_min": 10,
-     "towns": ["White Plains", "Scarsdale", "Rye", "Bronxville", "Chappaqua", "Purchase"]},
-    {"code": "nassau", "name": "Nassau County (Long Island), NY", "short": "Long Island", "kind": "area",
-     "state": "NY", "group": "Beyond", "lat": 40.7400, "lon": -73.5900, "crossing_min": 20, "mta": 1,
-     "towns": ["Garden City", "Great Neck", "Manhasset", "Oyster Bay", "Roslyn"]},
-    {"code": "hamptons", "name": "The Hamptons, NY", "short": "The Hamptons", "kind": "area", "state": "NY",
-     "group": "Beyond", "lat": 40.9634, "lon": -72.1848, "crossing_min": 20, "mta": 1,
+    # New York State and Connecticut commuter counties. One representative point per county (where most
+    # trips start: Garden City, Hauppauge, Southampton, White Plains, New Haven, ...); "mta" approximates
+    # the bridge/tunnel tolls each way (MTA, Thruway or Port Authority).
+    {"code": "nassau", "name": "Nassau County (Long Island), NY", "short": "Nassau", "kind": "area",
+     "state": "NY", "group": "Long Island", "lat": 40.7268, "lon": -73.6343, "crossing_min": 20, "mta": 1,
+     "towns": ["Garden City", "Great Neck", "Manhasset", "Oyster Bay", "Roslyn", "Rockville Centre"]},
+    {"code": "suffolk", "name": "Suffolk County (Long Island), NY", "short": "Suffolk", "kind": "area",
+     "state": "NY", "group": "Long Island", "lat": 40.8257, "lon": -73.2023, "crossing_min": 20, "mta": 1,
+     "towns": ["Huntington", "Hauppauge", "Smithtown", "Stony Brook", "Islip", "Babylon", "Port Jefferson"]},
+    {"code": "hamptons", "name": "The Hamptons & East End, NY", "short": "The Hamptons", "kind": "area",
+     "state": "NY", "group": "Long Island", "lat": 40.8843, "lon": -72.3895, "crossing_min": 20, "mta": 1,
      "towns": ["Southampton", "East Hampton", "Bridgehampton", "Sag Harbor", "Montauk"]},
+    {"code": "westchester", "name": "Westchester County, NY", "short": "Westchester", "kind": "area", "state": "NY",
+     "group": "Westchester & Hudson Valley", "lat": 41.0340, "lon": -73.7629, "crossing_min": 10,
+     "towns": ["White Plains", "Scarsdale", "Rye", "Bronxville", "Chappaqua", "Purchase", "Tarrytown"]},
+    {"code": "rockland", "name": "Rockland County, NY", "short": "Rockland", "kind": "area", "state": "NY",
+     "group": "Westchester & Hudson Valley", "lat": 41.0890, "lon": -74.0140, "crossing_min": 10, "mta": 1,
+     "towns": ["Nyack", "Nanuet", "New City", "Pearl River", "Suffern", "Piermont"]},
+    {"code": "putnam", "name": "Putnam County, NY", "short": "Putnam", "kind": "area", "state": "NY",
+     "group": "Westchester & Hudson Valley", "lat": 41.4300, "lon": -73.6800, "crossing_min": 10,
+     "towns": ["Carmel", "Brewster", "Mahopac", "Cold Spring", "Garrison", "Patterson"]},
+    {"code": "orange-ny", "name": "Orange County, NY", "short": "Orange County", "kind": "area", "state": "NY",
+     "group": "Westchester & Hudson Valley", "lat": 41.4000, "lon": -74.3200, "crossing_min": 10, "mta": 1,
+     "towns": ["Newburgh", "Goshen", "Middletown", "Warwick", "Monroe", "Cornwall", "Tuxedo Park"]},
+    {"code": "dutchess", "name": "Dutchess County, NY", "short": "Dutchess", "kind": "area", "state": "NY",
+     "group": "Westchester & Hudson Valley", "lat": 41.7000, "lon": -73.9200, "crossing_min": 10,
+     "towns": ["Poughkeepsie", "Beacon", "Rhinebeck", "Fishkill", "Millbrook", "Wappingers Falls"]},
+    {"code": "ulster", "name": "Ulster County, NY", "short": "Ulster", "kind": "area", "state": "NY",
+     "group": "Westchester & Hudson Valley", "lat": 41.8300, "lon": -74.0500, "crossing_min": 10, "mta": 1,
+     "towns": ["Kingston", "New Paltz", "Woodstock", "Saugerties", "Ellenville"]},
     {"code": "fairfield", "name": "Fairfield County, CT", "short": "Fairfield County", "kind": "area",
-     "state": "CT", "group": "Beyond", "lat": 41.0534, "lon": -73.5387, "crossing_min": 10, "mta": 1,
-     "towns": ["Greenwich", "Stamford", "Darien", "New Canaan", "Westport"]},
+     "state": "CT", "group": "Connecticut", "lat": 41.0534, "lon": -73.5387, "crossing_min": 10, "mta": 1,
+     "towns": ["Greenwich", "Stamford", "Darien", "New Canaan", "Westport", "Norwalk", "Ridgefield"]},
+    {"code": "new-haven", "name": "New Haven County, CT", "short": "New Haven", "kind": "area",
+     "state": "CT", "group": "Connecticut", "lat": 41.3080, "lon": -72.9280, "crossing_min": 10, "mta": 1,
+     "towns": ["New Haven", "Milford", "Guilford", "Madison", "Hamden", "Branford", "Cheshire"]},
+    {"code": "litchfield", "name": "Litchfield County, CT", "short": "Litchfield", "kind": "area",
+     "state": "CT", "group": "Connecticut", "lat": 41.7470, "lon": -73.1890, "crossing_min": 10, "mta": 1,
+     "towns": ["Litchfield", "Washington", "Kent", "New Milford", "Salisbury", "Woodbury"]},
     {"code": "philadelphia", "name": "Philadelphia, PA", "short": "Philadelphia", "kind": "city", "state": "PA",
-     "group": "Beyond", "lat": 39.9526, "lon": -75.1652, "crossing_min": 15},
+     "group": "Further afield", "lat": 39.9526, "lon": -75.1652, "crossing_min": 15},
 ]
 
 # Shown on the site as "from" prices. Each must be a route the authority rules allow.
@@ -231,14 +259,39 @@ POPULAR_JOURNEYS = [("manhattan", "jfk"), ("manhattan", "ewr"), ("teb", "manhatt
 # Inputs to the cost model in app/domain/rates.py. Every number is the owner's to confirm.
 PRICING = {
     "approved": False,                    # owner flips to True; until then prices are "estimates"
-    "version": "2026-11-22-market",
-    # by the hour, all-in (gratuity included)
-    "hourly_cents": 14500,                # benchmark: Escalade hourly published ~$125/h + gratuity in NYC
+    "version": "2026-11-22-benchmark",
+    # by the hour, all-in (gratuity included) — the benchmark's Escalade-class hourly rate
+    "hourly_cents": 15000,
     "hourly_min_hours": 3,
     "hourly_max_hours": 12,
-    # point to point: price = committed time x rate + running cost + tolls + fixed share, grossed up for card fees
-    "target_hourly_cents": 6500,          # chauffeur pay + vehicle margin per committed hour (market-calibrated)
-    "price_reference": "manhattan",       # repositioning priced from Midtown, where the market's cars are
+
+    # ---- point to point: the market's own price structure (see BENCHMARKS and pricing-proposal.md) ----
+    # Regular price = base + per-mile x road miles of the client's journey, all-in (tolls, congestion
+    # charges, gratuity). Calibrated on the benchmark's 24 published Escalade-class routes in every
+    # region: $150 + $6.94/mile, each within +-5%. Rounded to the nearest $5. Same price either way.
+    "tariff": {"base_cents": 15000, "per_mile_cents": 694, "fitted_on_routes": 24,
+               # beyond the benchmark's range (~100 mi) the market prices by time: the round trip at the
+               # hourly rate (+30 min turnaround) + tolls, whichever is lower
+               "turnaround_min": 30},
+    # Road miles: the benchmark's published route distance where one exists; otherwise straight line x
+    # (road_factor + road_factor_near x e^(-straight/road_factor_scale_mi)) — urban trips wind more than
+    # highway runs. Fitted on the same 24 published routes.
+    "road_factor": 1.12, "road_factor_near": 1.45, "road_factor_scale_mi": 10,
+    # Jersey Shore: every road north goes around Raritan and Lower New York Bay, through the Garden State
+    # Parkway / Turnpike corridor at Woodbridge (Driscoll Bridge), so distances are measured through it.
+    "road_via": {code: (40.52, -74.30) for code in ("monmouth", "ocean", "atlantic", "cape-may")},
+    "road_miles": {
+        ("manhattan", "jfk"): 17.7, ("manhattan", "lga"): 10.1, ("manhattan", "ewr"): 16.4,
+        ("manhattan", "nassau"): 22, ("nassau", "jfk"): 20, ("nassau", "lga"): 22,
+        ("manhattan", "suffolk"): 50, ("suffolk", "jfk"): 45, ("manhattan", "hamptons"): 95,
+        ("westchester", "lga"): 20, ("westchester", "jfk"): 30,
+        ("new-haven", "manhattan"): 79, ("new-haven", "jfk"): 76, ("new-haven", "lga"): 73,
+    },
+
+    # ---- cost floor: never sell a journey below what it costs in committed vehicle time ----
+    # committed time x rate + running cost + tolls + fixed share, grossed up for card fees (rates.transfer)
+    "target_hourly_cents": 6500,          # chauffeur pay + vehicle margin per committed hour
+    "price_reference": "manhattan",       # repositioning costed from Midtown
     "running_cents_per_mile": 60,         # fuel (~15 mpg at ~$3.30) + tyres, service, depreciation
     "fixed_cents_per_trip": 2200,         # livery insurance, licences, phone, hosting / expected trips
     "card_fee_rate": 0.029, "card_fee_fixed_cents": 30,
@@ -256,39 +309,98 @@ PRICING = {
     "delaware_bridge_cents": 500,         # VERIFY Delaware River crossing into Pennsylvania
     "nj_toll_cents_per_mile": 6,          # Turnpike / Parkway approximation
     "service_buffer_min": 20,             # padding after the empty return before the next job
-    # Launch offer. List prices stay at the long-run level (the reference price clients remember);
-    # the introductory offer is shown as a time-boxed discount from them. Ending a discount meets far
-    # less resistance than raising a posted price (Kahneman, Knetsch & Thaler, AER 1986, Proposition 4).
-    "introductory": {"active": False, "label": "Founding client rate", "percent_off": 15,
-                     "ends_local": "2027-02-28T23:59"},
+
+    # Introductory offer. List prices stay at the long-run level (the reference price clients remember);
+    # the offer is a time-boxed discount from them, rounded down to $5 so it is always at least the stated
+    # percentage. Ending a discount meets far less resistance than raising a posted price (Kahneman,
+    # Knetsch & Thaler, AER 1986). NYC rule 6 RCNY 5-95: offered at launch (service not sold for more than
+    # six weeks before), and the regular price must then be charged for at least 30 days.
+    "introductory": {"active": True, "label": "Introductory rate", "percent_off": 10,
+                     "ends_local": "2027-01-31T23:59"},
 }
 
-# Competitive calibration — what clients compare us with. Add real checks before launch
-# (Uber app, 10 routes x 3 times of day). all_in = fare + tolls + typical gratuity.
-# All-in = fare + tolls + fees + a 20% tip where not included. Positioning: at or just under Uber Black SUV
-# and mid-market Escalade operators; never above the premium end. One price in both directions, as the
-# market quotes airport transfers.
+# Competitive calibration — what clients compare us with. all_in = what the client pays door to door:
+# fare + tolls + fees + a 20% gratuity where the operator does not include one.
+#   anchor: the benchmark the tariff reproduces — Detailed Drivers' Escalade ESV class ("First Class SUV"),
+#           published all-in (20% gratuity, tolls, tax) for every region, with route miles.
+#   check:  other published prices on the same journeys, to show where the tariff sits in each market.
+# Routes are place codes (both directions cost the same). Optional "at": the town the price is quoted for.
 BENCHMARKS = [
-    {"route": ("manhattan", "lga"), "who": "Uber Black SUV (avg fare, Midtown West)", "all_in_cents": 19500,
-     "checked": "2026-11-22", "source": "gothamride.com/blog/black-car-vs-uber-black-nyc: $162 + 20% tip"},
-    {"route": ("manhattan", "ewr"), "who": "Uber Black SUV (avg fare, Midtown West)", "all_in_cents": 26200,
-     "checked": "2026-11-22", "source": "gothamride.com/blog/black-car-vs-uber-black-nyc: $218 + 20% tip"},
-    {"route": ("manhattan", "lga"), "who": "NYC Lux Ride (Escalade)", "all_in_cents": 22800,
+    # --- anchor: Detailed Drivers, Escalade ESV, all-in --------------------------------------------
+    *[{"route": r, "at": at, "miles": mi, "who": "Detailed Drivers (Escalade ESV)", "role": "anchor",
+       "all_in_cents": c * 100, "checked": "2026-11-22", "source": src}
+      for r, at, mi, c, src in [
+        (("manhattan", "lga"), "Midtown", 10.1, 210, "detaileddrivers.com/guides/nyc-car-service-cost"),
+        (("manhattan", "jfk"), "Midtown", 17.7, 270, "detaileddrivers.com/guides/nyc-car-service-cost"),
+        (("manhattan", "ewr"), "Midtown", 16.4, 260, "detaileddrivers.com/guides/nyc-car-service-cost"),
+        (("manhattan", "teb"), "Midtown", None, 240, "detaileddrivers.com/guides/nyc-car-service-cost"),
+        (("manhattan", "nassau"), "Garden City", 22, 300, "detaileddrivers.com/locations/long-island"),
+        (("nassau", "jfk"), "Garden City", 20, 290, "detaileddrivers.com/locations/long-island"),
+        (("nassau", "lga"), "Garden City", 22, 300, "detaileddrivers.com/locations/long-island/airport-transfer"),
+        (("manhattan", "suffolk"), "Hauppauge", 50, 500, "detaileddrivers.com/locations/long-island"),
+        (("suffolk", "jfk"), "Hauppauge", 45, 460, "detaileddrivers.com/locations/long-island/airport-transfer"),
+        (("manhattan", "hamptons"), "the Hamptons", 95, 810, "detaileddrivers.com/locations/long-island"),
+        (("hamptons", "jfk"), "Southampton to Montauk, from", None, 750,
+         "detaileddrivers.com/guides/jfk-car-service-cost"),
+        (("westchester", "lga"), "White Plains", 20, 290,
+         "detaileddrivers.com/locations/westchester/airport-transfer"),
+        (("westchester", "jfk"), "White Plains", 30, 360,
+         "detaileddrivers.com/locations/westchester/airport-transfer"),
+        (("hpn", "manhattan"), "Midtown", None, 380,
+         "detaileddrivers.com/locations/new-york/airport-transfer/hpn-westchester-county-airport"),
+        (("fairfield", "jfk"), "Greenwich, from", None, 430, "detaileddrivers.com/guides/jfk-car-service-cost"),
+        (("new-haven", "manhattan"), "New Haven", 79, 700, "detaileddrivers.com/locations/connecticut/new-haven"),
+        (("new-haven", "jfk"), "New Haven", 76, 680, "detaileddrivers.com/locations/connecticut/new-haven"),
+        (("new-haven", "lga"), "New Haven", 73, 650, "detaileddrivers.com/locations/connecticut/new-haven"),
+        (("hudson", "jfk"), "Jersey City / Newark, from", None, 320,
+         "detaileddrivers.com/guides/jfk-car-service-cost"),
+      ]],
+    # --- checks: Manhattan airport routes --------------------------------------------------------------
+    {"route": ("manhattan", "lga"), "who": "NYC Lux Ride (Escalade ESV)", "role": "check", "all_in_cents": 22800,
      "checked": "2026-11-22", "source": "nycluxride.com/rates: $190 incl. tolls, fees, taxes + 20% tip"},
-    {"route": ("manhattan", "jfk"), "who": "NYC Lux Ride (Escalade)", "all_in_cents": 26400,
+    {"route": ("manhattan", "jfk"), "who": "NYC Lux Ride (Escalade ESV)", "role": "check", "all_in_cents": 26400,
      "checked": "2026-11-22", "source": "nycluxride.com/rates: $220 incl. tolls, fees, taxes + 20% tip"},
-    {"route": ("manhattan", "ewr"), "who": "NYC Lux Ride (Escalade)", "all_in_cents": 26400,
+    {"route": ("manhattan", "ewr"), "who": "NYC Lux Ride (Escalade ESV)", "role": "check", "all_in_cents": 26400,
      "checked": "2026-11-22", "source": "nycluxride.com/rates: $220 incl. tolls, fees, taxes + 20% tip"},
-    {"route": ("manhattan", "lga"), "who": "LS Black Cars (Escalade ESV, from)", "all_in_cents": 21000,
-     "checked": "2026-11-22", "source": "lsblackcars.com: from $169.05 incl. STC + fuel; tolls + 20% tip added"},
-    {"route": ("manhattan", "lga"), "who": "Gotham Ride (Escalade, all-in)", "all_in_cents": 33200,
-     "checked": "2026-11-22", "source": "gothamride.com: from $332 incl. tolls and tip (premium end)"},
-    {"route": ("manhattan", "jfk"), "who": "Gotham Ride (Escalade, all-in)", "all_in_cents": 33700,
-     "checked": "2026-11-22", "source": "gothamride.com: from $337 incl. tolls and tip (premium end)"},
-    {"route": ("bergen", "jfk"), "who": "Air Brook (SUV)", "all_in_cents": 35500, "checked": "2026-11-19",
-     "source": "airbrook.com: from $284.40 + tolls + >=15% gratuity"},
-    {"route": None, "who": "NYC Executive Car (Escalade ESV) hourly", "all_in_cents": 14400, "unit": "hour",
-     "checked": "2026-11-22", "source": "nycexecutivecar.com: $120/h, 2-hour minimum, + 20% tip"},
+    {"route": ("manhattan", "teb"), "who": "NYC Lux Ride (Escalade ESV)", "role": "check", "all_in_cents": 26400,
+     "checked": "2026-11-22", "source": "nycluxride.com/rates: $220 incl. tolls, fees, taxes + 20% tip"},
+    {"route": ("manhattan", "lga"), "who": "Gotham Ride (Business SUV)", "role": "check", "all_in_cents": 27000,
+     "checked": "2026-11-22", "source": "gothamride.com/car-service-rates-nyc: incl. tolls and gratuity"},
+    {"route": ("manhattan", "jfk"), "who": "Gotham Ride (Business SUV)", "role": "check", "all_in_cents": 28600,
+     "checked": "2026-11-22", "source": "gothamride.com/car-service-rates-nyc: incl. tolls and gratuity"},
+    {"route": ("manhattan", "ewr"), "who": "Gotham Ride (Business SUV)", "role": "check", "all_in_cents": 29600,
+     "checked": "2026-11-22", "source": "gothamride.com/car-service-rates-nyc: incl. tolls and gratuity"},
+    {"route": ("manhattan", "lga"), "who": "Uber Black SUV (average)", "role": "check", "all_in_cents": 19500,
+     "checked": "2026-11-22", "source": "gothamride.com/blog/black-car-vs-uber-black-nyc: $162 + 20% tip"},
+    {"route": ("manhattan", "ewr"), "who": "Uber Black SUV (average)", "role": "check", "all_in_cents": 26200,
+     "checked": "2026-11-22", "source": "gothamride.com/blog/black-car-vs-uber-black-nyc: $218 + 20% tip"},
+    # --- checks: New Jersey and Rockland (Air Brook; SUV fare + 20% gratuity + tolls) -------------------
+    {"route": ("bergen", "jfk"), "at": "Hackensack", "who": "Air Brook (SUV)", "role": "check",
+     "all_in_cents": 36500, "checked": "2026-11-22",
+     "source": "airbrook.com/service-area/jfk-airport-car-service: from $284.40 + 20% + ~$24 tolls"},
+    {"route": ("bergen", "lga"), "at": "Rochelle Park", "who": "Air Brook (SUV)", "role": "check",
+     "all_in_cents": 35000, "checked": "2026-11-22", "source": "airbrook.com: from $272.72 + 20% + ~$24 tolls"},
+    {"route": ("bergen", "manhattan"), "at": "Rochelle Park", "who": "Air Brook (SUV)", "role": "check",
+     "all_in_cents": 31000, "checked": "2026-11-22",
+     "source": "airbrook.com: from $239.68 + 20% + ~$23 tolls and congestion charge"},
+    {"route": ("essex", "jfk"), "at": "Newark", "who": "Air Brook (SUV)", "role": "check",
+     "all_in_cents": 34500, "checked": "2026-11-22",
+     "source": "airbrook.com/service-area/jfk-airport-car-service: from $274.80 + 20% + ~$17 tolls"},
+    {"route": ("rockland", "jfk"), "at": "Nanuet", "who": "Air Brook (SUV)", "role": "check",
+     "all_in_cents": 37500, "checked": "2026-11-22",
+     "source": "airbrook.com/service-area/jfk-airport-car-service: from $302.25 + 20% + ~$13 tolls"},
+    # --- checks: Long Island ---------------------------------------------------------------------------
+    {"route": ("hamptons", "manhattan"), "who": "Wheely (Business SUV)", "role": "check", "all_in_cents": 70000,
+     "plus": "+ tolls, taxes, fees", "checked": "2026-11-22",
+     "source": "wheely.com/en/essentials/the-hamptons-by-wheely: $700 excl. taxes, regulatory fees, tolls"},
+    # --- hourly ----------------------------------------------------------------------------------------
+    {"route": None, "unit": "hour", "who": "Detailed Drivers (Escalade ESV)", "role": "anchor",
+     "all_in_cents": 15000, "checked": "2026-11-22", "source": "detaileddrivers.com: $150/h all-in, 3-hour minimum"},
+    {"route": None, "unit": "hour", "who": "Gotham Ride (Business SUV)", "role": "check",
+     "all_in_cents": 18000, "checked": "2026-11-22",
+     "source": "gothamride.com: from $180/h incl. gratuity, 2-hour minimum"},
+    {"route": None, "unit": "hour", "who": "NYC Executive Car (Escalade ESV)", "role": "check",
+     "all_in_cents": 14400, "checked": "2026-11-22", "source": "nycexecutivecar.com: $120/h + 20% tip, 2-hour minimum"},
 ]
 
 # --------------------------------------------------------------- scheduling
@@ -381,8 +493,10 @@ FAQS = [
      "Newark, JFK, LaGuardia, Teterboro, Morristown and Westchester airports. For anything further, ask; we "
      "arrange long-distance journeys regularly."),
     ("How is the price calculated?",
-     "Point-to-point journeys are priced on the time and distance involved, including tolls, congestion charges "
-     "and gratuity. Hourly service is a single all-inclusive hourly rate with a three-hour minimum. The price you "
+     "Point-to-point journeys are priced by the road miles of your journey: a base fare plus a rate per mile, "
+     "the same way the region's established chauffeur services price, with tolls, congestion charges and gratuity "
+     "included. It costs the same in either direction, and very long journeys never cost more than the round trip "
+     "by the hour. Hourly service is a single all-inclusive hourly rate with a three-hour minimum. The price you "
      "confirm is the price you pay."),
     ("How quickly is my reservation confirmed?",
      "Usually the moment payment clears. Before a time is offered, our system checks the calendar — the drive to "

@@ -60,7 +60,7 @@ def routes(page: dict) -> str:
     <p class="eyebrow">Prices</p>
     <h2 id="prices-h" class="h2">{e(page['routes_h2'])}</h2>
     <p class="lede">Tolls, congestion charges, airport parking and gratuity included. Tap a journey to see your
-      price for a specific time.{e(sections.ESTIMATE_NOTE)}</p>
+      price for a specific time.{e(sections.ESTIMATE_NOTE)}{sections.offer_note()}</p>
     <ul class="journeys">{items}</ul>
   </div>
 </section>"""

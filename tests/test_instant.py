@@ -88,7 +88,8 @@ def test_introductory_offer_discounts_from_list_price(now):
                               "ends_local": "2027-02-28T23:59"}
     promo = replace(cat, params=params)
     amount, offer = rates.introductory(promo, 37000, now)
-    assert amount == 31400 and offer["label"] == "Founding client rate"
+    # rounded down to $5: never less than the percentage shown
+    assert amount == 31000 and offer["label"] == "Founding client rate" and amount <= 37000 * 0.85
     later = now.replace(year=2027, month=3, day=2)
     assert rates.introductory(promo, 37000, later) == (37000, None)
 

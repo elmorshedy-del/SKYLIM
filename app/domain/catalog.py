@@ -88,6 +88,9 @@ class Catalog:
         if missing:
             raise ValueError(f"SCHEDULING['buffer_after_min'] is missing {sorted(missing)}")
         pricing = dict(mod.PRICING)
+        for a, b in pricing.get("road_miles", {}):
+            if a not in places or b not in places:
+                raise ValueError(f"PRICING['road_miles'] has unknown place in {(a, b)!r}")
         return cls(places=places, params=pricing, authority=dict(mod.OPERATIONS["authority"]),
                    vehicle=dict(mod.VEHICLE), driver=dict(mod.DRIVER), policy=dict(mod.POLICY),
                    amenities=dict(mod.AMENITIES), home_base=home,

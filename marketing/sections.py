@@ -6,6 +6,7 @@ static/site.js.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from html import escape as e
 
 import data
@@ -13,6 +14,8 @@ import landing_pages
 from . import brand
 from .icons import AMENITY_ICONS, FEATURE_ICONS, cabin_plan, icon
 from .seo import journey_price
+from app.domain import rates
+from app.domain.catalog import get_catalog
 
 V = data.VOICE
 P = data.PRICING
@@ -243,14 +246,37 @@ ESTIMATE_NOTE = ("" if P["approved"] else
                  " Prices shown are estimates until our rates are finalised; your price is confirmed before you pay.")
 
 
+# The introductory offer on built pages. Pages are generated ahead of time, so every offer price carries its
+# end date (data-offer-ends) and site.js puts the regular price back once it has passed, even before the
+# next build. Text copy always quotes regular prices.
+def _offer_price(list_cents: int, today: int, offer: dict | None) -> str:
+    if not offer:
+        return f'<b class="num">{_money(list_cents)}</b>'
+    return (f'<b class="num" data-offer>{_money(today)}</b>'
+            f'<s class="num" data-regular>{_money(list_cents)}</s>')
+
+
+def _offer_attr(offer: dict | None) -> str:
+    return f' data-offer-ends="{e(offer["ends"])}"' if offer else ""
+
+
+def offer_note() -> str:
+    """One line explaining the introductory offer (HTML), or '' when none is running."""
+    _, _, offer = journey_price(*data.POPULAR_JOURNEYS[0])
+    if not offer:
+        return ""
+    ends = datetime.fromisoformat(offer["ends"])
+    return (f' <span data-offer-note{_offer_attr(offer)}>{e(offer["label"])}: {offer["percent_off"]}% off our '
+            f'regular prices until {ends:%B} {ends.day}, {ends.year} — regular prices shown struck through.</span>')
+
+
 def price_tag(origin: str, destination: str) -> str:
     """'from $X' markup for a journey, with the launch offer if one is running; '' if not instantly priced."""
     list_cents, today, offer = journey_price(origin, destination)
     if not list_cents:
         return ""
-    price = (f'<b class="num">{_money(today)}</b><s class="num">{_money(list_cents)}</s>' if offer
-             else f'<b class="num">{_money(list_cents)}</b>')
-    return f'<span class="jr-p"><small>from</small>{price}</span>'
+    return (f'<span class="jr-p"{_offer_attr(offer)}><small>from</small>'
+            f'{_offer_price(list_cents, today, offer)}</span>')
 
 
 def journey_items(pairs) -> str:
@@ -269,16 +295,17 @@ def journey_items(pairs) -> str:
 def pricing() -> str:
     cards = [journey_items(data.POPULAR_JOURNEYS)]
     note = ESTIMATE_NOTE
+    h_today, h_offer = rates.introductory(get_catalog(), P["hourly_cents"], datetime.now(timezone.utc))
     return f"""
 <section class="sec" id="pricing" aria-labelledby="pricing-h">
   <div class="wrap">
     <p class="eyebrow">Pricing</p>
     <h2 id="pricing-h" class="h2">The quote is the receipt.</h2>
-    <p class="lede">Every price includes tolls, congestion charges and gratuity.{e(note)}</p>
+    <p class="lede">Every price includes tolls, congestion charges and gratuity.{e(note)}{offer_note()}</p>
     <div class="pricing-in">
       <div class="hourly-card">
         <p class="eyebrow">By the hour</p>
-        <p class="hourly-price num">{_money(P['hourly_cents'])}<span>/hour</span></p>
+        <p class="hourly-price num"{_offer_attr(h_offer)}>{_offer_price(P['hourly_cents'], h_today, h_offer)}<span>/hour</span></p>
         <p>All-inclusive, {P['hourly_min_hours']}-hour minimum. Your chauffeur stays with you between appointments.</p>
         <a class="btn btn-light" href="#reserve" data-service="hourly" data-track="hourly_cta">Reserve by the hour</a>
       </div>

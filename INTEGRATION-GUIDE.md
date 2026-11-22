@@ -125,6 +125,8 @@ in `/admin`. Tune buffers from real trips: if you are often early, shorten them;
 | Landing pages (airports, NYC, NJ): words, journeys, FAQs | `landing_pages.py` | `python3 build.py`, `pytest tests/test_seo.py`, redeploy |
 | Brand name or logo letter | `data.BRAND` | `python3 tools/make_images.py`, `python3 build.py` |
 | Pricing inputs, hourly rate, launch offer | `data.PRICING` | `python3 tools/rate_model.py --write`, review, `python3 build.py` |
+| Competitor prices (quarterly re-check), known road distances | `data.BENCHMARKS`, `data.PRICING["road_miles"]` | `python3 tools/rate_model.py --write`, `pytest tests/test_pricing_benchmark.py` |
+| Approve prices (removes "estimate" labels) | `data.PRICING["approved"] = True` | `python3 build.py`, redeploy |
 | Layout | `marketing/` | `python3 build.py` |
 | Styles / behaviour | `static/site.css`, `static/site.js`, `static/tokens.css` | redeploy |
 | Booking rules | `app/domain/` (pure, unit-tested) | `pytest` |

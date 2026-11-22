@@ -88,11 +88,14 @@ calendar already supports multiple vehicles and drivers.
   demand-driven surges unfair.
 
 **Policy**
-1. **List price = the long-run price**, from the cost model (`data.PRICING`, `app/domain/rates.py`):
-   committed vehicle time × $75/h + $0.60/mile + tolls + fixed costs, grossed up for card fees.
-   Examples: Bergen → JFK $370 · Teterboro → Manhattan $305 · Hudson → EWR $165 · hourly $145.
-2. **Launch with a visible "Founding client rate"** (15% off, time-boxed to 28 Feb 2027) instead of lower list
-   prices: clients see ~~$370~~ $314. Turn on with `PRICING["introductory"]["active"] = True`.
+1. **List price = the long-run price**, set at the market's Escalade price in every county: $150 + $6.94 per
+   road mile, all-in — the structure Detailed Drivers publishes for its Escalade ESV class across NYC, Long
+   Island, Westchester, Connecticut and New Jersey (`data.PRICING["tariff"]`, `app/domain/rates.py`), never
+   below cost. Examples: Manhattan ↔ JFK $275 · LaGuardia $220 · Newark $265 · Bergen ↔ JFK $345 · hourly
+   $150. Every county and the competitor evidence: `pricing-proposal.md` (`python3 tools/rate_model.py --write`).
+2. **Launch with a visible "Introductory rate"** (10% off, rounded down to $5, until 31 January 2027) instead of
+   lower list prices: clients see ~~$275~~ $245. NYC rule 6 RCNY § 5-95: offered at launch, and the regular
+   price must then be kept for at least 30 days. Switch: `PRICING["introductory"]["active"]`.
 3. **Compete where Uber is weak**: fixed all-inclusive price (no tip, toll or surge add-ons), guaranteed
    Escalade, pre-set cabin, private aviation. Keep the $125 minimum; steer short hops to hourly.
 4. **Raise prices without losing clients**: end the founding rate first; then small annual list increases

@@ -27,7 +27,14 @@ def test_quote_api_prices_on_server(client):
     assert r.status_code == 200
     q = r.json()
     cat = get_catalog()
-    assert q["amount_cents"] == rates.journey(cat, cat.places["bergen"], cat.places["jfk"]).cents
+    list_cents = rates.journey(cat, cat.places["bergen"], cat.places["jfk"]).cents
+    assert q["list_amount_cents"] == list_cents
+    # the introductory offer, while it runs, discounts from the list price (never less than its percentage)
+    if q["offer"]:
+        assert q["amount_cents"] <= list_cents * (100 - q["offer"]["percent_off"]) / 100
+        assert q["amount_cents"] % 500 == 0
+    else:
+        assert q["amount_cents"] == list_cents
     assert q["bookable"] and q["availability"] == "available"
 
 

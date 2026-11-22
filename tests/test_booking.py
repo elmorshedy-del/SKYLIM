@@ -19,7 +19,9 @@ from tests.helpers import approve, later, quote, request
 def test_server_calculates_amount_from_cost_model(now):
     cat = get_catalog()
     q = quote(now, origin="bergen", destination="jfk")
-    assert q["amount_cents"] == rates.journey(cat, cat.places["bergen"], cat.places["jfk"]).cents
+    list_cents = rates.journey(cat, cat.places["bergen"], cat.places["jfk"]).cents
+    assert q["list_amount_cents"] == list_cents
+    assert q["amount_cents"] == rates.introductory(cat, list_cents, now)[0]
     assert q["currency"] == "usd"
     assert q["price_status"] == ("firm" if cat.pricing_approved else "estimate")
 
@@ -27,7 +29,8 @@ def test_server_calculates_amount_from_cost_model(now):
 def test_hourly_priced_at_published_rate_with_minimum(now):
     cat = get_catalog()
     q = quote(now, service="hourly", origin="manhattan", hours=4)
-    assert q["amount_cents"] == 4 * cat.params["hourly_cents"]
+    assert q["list_amount_cents"] == 4 * cat.params["hourly_cents"]
+    assert q["amount_cents"] == rates.introductory(cat, 4 * cat.params["hourly_cents"], now)[0]
     short = quote(now, service="hourly", origin="essex", hours=2)
     assert not short["bookable"] and any(m["code"] == "hours_range" for m in short["messages"])
 

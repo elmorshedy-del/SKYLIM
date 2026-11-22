@@ -80,6 +80,17 @@
   }
   api('GET', '/api/config').then(function (c) { S.cfg = c; }).catch(function () {});
 
+  // Built pages carry the introductory offer's end date; once it has passed, show the regular price.
+  $$('[data-offer-ends]').forEach(function (el) {
+    if (Date.now() <= Date.parse(el.getAttribute('data-offer-ends'))) return;
+    if (el.hasAttribute('data-offer-note')) { el.hidden = true; return; }
+    $$('[data-offer]', el).forEach(function (b) { b.parentNode.removeChild(b); });
+    $$('s[data-regular]', el).forEach(function (s) {
+      var b = document.createElement('b'); b.className = s.className; b.textContent = s.textContent;
+      s.parentNode.replaceChild(b, s);
+    });
+  });
+
   /* ================================================================ dates */
   function etParts(d) {
     var p = {};
@@ -175,7 +186,10 @@
     $('#r-price').textContent = q.amount_cents ? money(q.amount_cents) : 'Priced personally';
     var was = $('#r-was'), offer = $('#r-offer');
     was.textContent = q.offer ? money(q.list_amount_cents) : '';
-    offer.hidden = !q.offer; offer.textContent = q.offer ? q.offer.label + ' — ' + q.offer.percent_off + '% off' : '';
+    offer.hidden = !q.offer;
+    offer.textContent = q.offer ? q.offer.label + ' — ' + q.offer.percent_off + '% off our regular price of '
+      + money(q.list_amount_cents) + ' until ' + new Date(q.offer.ends).toLocaleDateString('en-US',
+        { month: 'long', day: 'numeric', timeZone: 'America/New_York' }) : '';
     $('#r-meta').textContent = fmtWhen(q.pickup_at) + ' · ' + (q.price_status === 'custom' ? 'We will confirm a price personally'
       : 'All-inclusive' + (q.price_status === 'estimate' ? ' · confirmed before payment' : ''));
     var msgs = $('#r-msgs'); msgs.innerHTML = '';
