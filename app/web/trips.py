@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 import data
-from ..config import get_settings, payments_live
+from ..config import get_settings, payments_live, payments_possible
 from ..db import tx
 from ..domain.preferences import JourneyPreferences
 from ..domain.status import ACTIVE_TRIP, LABELS, Status
@@ -63,7 +63,7 @@ def _view(conn, b: dict, now: datetime) -> dict:
                       "at": reached[t.value].isoformat() if t.value in reached else None} for t in TIMELINE],
         "chauffeur": chauffeur,
         "cabin": prefs.checklist(),
-        "payable": status == Status.PAYMENT_PENDING and payments_live(s),
+        "payable": status == Status.PAYMENT_PENDING and (payments_possible(s) if b["is_test"] else payments_live(s)),
         "hold_until": hold["expires_at"].isoformat() if hold else None,
         "can_cancel": status in (Status.REQUESTED, Status.PAYMENT_PENDING, Status.CONFIRMED),
         "free_cancellation": (not paid) or hours_left >= s.free_cancel_hours,

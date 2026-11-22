@@ -6,20 +6,20 @@ import uuid
 from datetime import date, datetime
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 import data
 from ..config import LOCAL_TZ, get_settings, payments_live
-from ..db import tx
+from ..db import TEST_DRIVER_ID, TEST_VEHICLE_ID, tx
 from ..domain.catalog import get_catalog
 from ..domain.preferences import MODE_DEFAULTS, JourneyPreferences
 from ..domain.pricing import (BLOCKING, TIME_REASONS, QuoteInputError, TripRequest, decide_quote, explain,
                               parse_local_pickup)
-from ..errors import AppError, Invalid
-from ..services import availability, bookings, payments, quotes
+from ..errors import AppError, Forbidden, Invalid, Unavailable
+from ..services import availability, bookings, payments, quotes, test_trip
 from ..services.notifications import trip_url
-from .deps import clock, rate_limit
+from .deps import can_mock, clock, rate_limit, same_origin
 
 router = APIRouter(prefix="/api", tags=["public"])
 
@@ -68,6 +68,7 @@ class QuoteIn(Strict):
     carry_ons: int = Field(default=0, ge=0, le=20)
     session_id: Optional[str] = Field(default=None, max_length=64)
     attribution: Optional[dict] = None
+    mock: bool = False
 
 
 class SlotsIn(Strict):
@@ -79,6 +80,7 @@ class SlotsIn(Strict):
     passengers: int = Field(default=1, ge=1, le=20)
     large_bags: int = Field(default=0, ge=0, le=20)
     carry_ons: int = Field(default=0, ge=0, le=20)
+    mock: bool = False
 
 
 class ContactIn(Strict):
@@ -139,12 +141,23 @@ class InquiryIn(Strict):
 
 
 # ------------------------------------------------------------------- routes
+def _require_mock(request: Request) -> None:
+    if not can_mock(request) or not same_origin(request):
+        raise Forbidden("Mock reservations are for the signed-in owner only.")
+    ok, why = test_trip.readiness(get_settings())
+    if not ok:
+        raise Unavailable(f"Mock reservation not available: {why}.")
+
+
 @router.get("/config")
-def public_config() -> dict:
+def public_config(request: Request, response: Response) -> dict:
     """What the website may show. Features that are off are hidden, not faked."""
     s, cat = get_settings(), get_catalog()
     p = cat.params
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Vary"] = "Cookie"
     return {
+        "mock_enabled": can_mock(request),
         "payments_live": payments_live(s),
         "payment_methods": list(s.payment_methods_display),
         "tracking": s.tracking_enabled,
@@ -163,7 +176,9 @@ def public_config() -> dict:
 
 
 @router.post("/quotes", dependencies=[rate_limit("quotes", 30)])
-def create_quote(body: QuoteIn, now: datetime = Depends(clock)) -> dict:
+def create_quote(body: QuoteIn, request: Request, now: datetime = Depends(clock)) -> dict:
+    if body.mock:
+        _require_mock(request)
     try:
         req = TripRequest(service=body.service, origin=body.origin,
                           destination=body.destination if body.service == "transfer" else None,
@@ -172,19 +187,23 @@ def create_quote(body: QuoteIn, now: datetime = Depends(clock)) -> dict:
                           large_bags=body.large_bags, carry_ons=body.carry_ons)
         with tx() as conn:
             return quotes.create_quote(conn, req, cat=get_catalog(), settings=get_settings(), now=now,
-                                       session_id=body.session_id, attribution=_attribution(body.attribution))
+                                       session_id=body.session_id if not body.mock else None,
+                                       attribution=_attribution(body.attribution) if not body.mock else None,
+                                       is_test=body.mock)
     except QuoteInputError as e:
         raise Invalid(str(e))
 
 
 @router.post("/slots", dependencies=[rate_limit("slots", 60)])
-def pickup_slots(body: SlotsIn, now: datetime = Depends(clock)) -> dict:
+def pickup_slots(body: SlotsIn, request: Request, now: datetime = Depends(clock)) -> dict:
     """Pickup times that can be reserved online on one day — shown like appointment slots.
 
     If the route itself can't be booked online (authority, capacity, hours), the reason comes back
     instead of times, worded exactly as a quote would word it.
     """
     s, cat = get_settings(), get_catalog()
+    if body.mock:
+        _require_mock(request)
     try:
         day = date.fromisoformat(body.date)
     except ValueError:
@@ -207,36 +226,44 @@ def pickup_slots(body: SlotsIn, now: datetime = Depends(clock)) -> dict:
                                      max_advance_days=s.max_advance_days)
         return result
     with tx() as conn:
-        result["slots"] = availability.day_slots(conn, cat, req, day, now, s, ops["slots"])
+        resources = {"vehicle_id": TEST_VEHICLE_ID, "driver_id": TEST_DRIVER_ID} if body.mock else {}
+        result["slots"] = availability.day_slots(conn, cat, req, day, now, s, ops["slots"], **resources)
     return result
 
 
 @router.post("/bookings", status_code=201, dependencies=[rate_limit("bookings", 6)])
-def create_booking(body: BookingIn, now: datetime = Depends(clock)) -> dict:
+def create_booking(body: BookingIn, request: Request, now: datetime = Depends(clock)) -> dict:
     """Reserve. Clean trips with enough notice are held and sent straight to payment
     (instant); anything that needs a human look becomes a request for approval.
     The server decides which — never the browser."""
     s = get_settings()
     with tx() as conn:
         q = conn.execute("SELECT * FROM quotes WHERE id = %s", (body.quote_id,)).fetchone()
+        is_test = bool(q and q["is_test"])
+        if is_test:
+            _require_mock(request)
+            if body.contact.email not in {s.owner_email.lower(), *s.email_allowlist}:
+                raise Forbidden("For mock reservations, use the owner's email or an allowlisted test address.")
         instant = bool(q) and q["availability"] == "available" and quotes.instant_allowed(
             conn, eligible=q["eligible"], needs_review=q["needs_review"],
-                                                     pickup_at=q["pickup_at"], now=now, s=s)
+                                                     pickup_at=q["pickup_at"], now=now, s=s, is_test=is_test)
         b, token = bookings.create(
             conn, quote_id=body.quote_id,
             contact=bookings.Contact(body.contact.name, body.contact.email, body.contact.phone),
             trip=bookings.TripDetails(body.trip.pickup_address, body.trip.dropoff_address,
                                       body.trip.flight_number, body.trip.notes),
-            preferences=body.preferences, remember=body.remember_preferences,
-            accepted_policy_version=body.accept_policy_version, source=body.source,
-            cat=get_catalog(), now=now, attribution=_attribution(body.attribution), instant=instant, settings=s)
+            preferences=body.preferences, remember=body.remember_preferences and not is_test,
+            accepted_policy_version=body.accept_policy_version, source=test_trip.SOURCE if is_test else body.source,
+            cat=get_catalog(), now=now, attribution=None if is_test else _attribution(body.attribution),
+            instant=instant, settings=s, is_test=is_test)
+        instant = bool(b["instant"])
     checkout_url = None
     if instant:
         try:
             checkout_url = payments.start_checkout(token, now=now, s=s)
         except AppError:
             checkout_url = None          # the trip page offers "Pay securely" with the same hold
-    return {"booking_id": str(b["id"]), "ref": b["ref"], "status": b["status"], "instant": instant,
+    return {"booking_id": str(b["id"]), "ref": b["ref"], "status": b["status"], "instant": instant, "mock": is_test,
             "amount_cents": b["amount_cents"], "trip_url": trip_url(b["id"]), "trip_token": token,
             "checkout_url": checkout_url}
 

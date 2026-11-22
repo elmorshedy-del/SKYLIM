@@ -1,7 +1,7 @@
-"""The owner's $1 test trip: one real booking, paid for real, to prove the whole payment path.
+"""The owner's $1 test trip: readiness checks and the legacy admin quick-start.
 
-Switched on and off in data.TEST_TRIP. When on, /admin shows "Start a $1 test trip", which books a
-real trip through the normal path — quote, booking, hold, Stripe Checkout, webhook, confirmation,
+Switched on and off in data.TEST_TRIP. The website reservation form is the primary mock entry point;
+the legacy admin quick-start still books a trip through the normal path — quote, booking, hold, Stripe Checkout, webhook, confirmation,
 trip page — with three explicit differences:
 
   1. the price is TEST_TRIP["amount_cents"]: the trip is quoted normally, then marked down;
@@ -83,7 +83,7 @@ def start(conn: psycopg.Connection, *, now: datetime, settings: Settings, cat: C
     else:
         raise Conflict("The test calendar is full — cancel an earlier test trip in /admin.", code="test_calendar_full")
 
-    q = quotes.create_quote(conn, req, cat=cat, settings=settings, now=now, attribution={"source": SOURCE})
+    q = quotes.create_quote(conn, req, cat=cat, settings=settings, now=now, is_test=True)
     conn.execute("UPDATE quotes SET amount_cents = %s, eligible = true, needs_review = false WHERE id = %s",
                  (cfg["amount_cents"], q["quote_id"]))
     return bookings.create(

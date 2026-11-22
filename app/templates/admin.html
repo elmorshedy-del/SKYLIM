@@ -30,11 +30,12 @@
 {% if test_trip.enabled %}
 <section class="card">
   <p class="label">Test trip</p>
-  <p class="small muted">Book and pay {{ test_trip.amount_cents|money }} yourself to check the whole path — booking,
+  <p class="small muted">On the website, select <b>Mock reservation</b> below the destination field while signed in.
+    Book and pay {{ test_trip.amount_cents|money }} yourself to check the whole path — booking,
     Stripe, confirmation, trip page. Then cancel it below to test the refund. It never blocks a client's time and
     never counts as revenue. Switch it off in data.py (TEST_TRIP) when you are done.</p>
   {% if test_trip.ready %}
-    <form method="post" action="/admin/test-trip"><button class="btn" type="submit">Start a {{ test_trip.amount_cents|money }} test trip</button></form>
+    <a class="btn" href="/#reserve">Open the website reservation form</a>
   {% else %}
     <p class="small">Not available yet: {{ test_trip.reason }}.</p>
   {% endif %}
@@ -184,6 +185,16 @@
       positions kept {{ settings.tracking_retention_hours }} h after a trip.</p>
   </section>
 </div>
+
+{% if test_emails %}
+<div class="sec"><h2>Mock trip email delivery</h2><span class="count">{{ test_emails|length }}</span></div>
+<section class="card">
+  {% for m in test_emails %}
+  <div class="row"><span>{{ m.ref }} · {{ m.kind.replace('_', ' ') }}</span><b>{{ m.status }}{% if m.sent_at %} · {{ m.sent_at|et }}{% endif %}</b></div>
+  {% if m.last_error %}<p class="small muted">{{ m.last_error }}</p>{% endif %}
+  {% endfor %}
+</section>
+{% endif %}
 
 {% if outbox %}
 <div class="sec"><h2>Emails to send by hand</h2><span class="count">{{ outbox|length }}</span></div>

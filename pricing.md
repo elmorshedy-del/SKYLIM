@@ -1,6 +1,6 @@
 # Celeste Luxury Limo — Private chauffeur service
 
-> Machine-readable rates. Status: estimates, confirmed before payment. Updated 2026-11-21.
+> Machine-readable rates. Status: estimates, confirmed before payment. Updated 2026-11-22.
 
 Point-to-point prices are per vehicle, in USD, and include tolls, congestion charges, airport parking and gratuity. Vehicle: Cadillac Escalade with second-row captain's chairs, panoramic sunroof and onboard Wi-Fi; up to 6 guests.
 

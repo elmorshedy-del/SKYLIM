@@ -11,7 +11,7 @@ app/
   main.py               app factory: middleware (security headers, gzip), error mapping, background sweeper
   config.py             settings from environment + launch gates + payments_live()
   db.py                 connection pool, transactions, migrations, fleet seed
-  security.py           opaque tokens, scrypt admin password, signed admin session
+  security.py           opaque tokens, scrypt admin password, signed admin and API-scoped mock sessions
   errors.py             domain errors → HTTP status codes
   domain/               PURE business rules — no I/O, fully unit-testable
     catalog.py          typed, validated view of data.py
@@ -46,7 +46,9 @@ tools/make_images.py    renders static/og.png (share image) and static/logo.png 
 | Customer links are unguessable and stored only as hashes | `security.trip_token`, `token_hash` |
 | Payments off in production until launch gates pass | `config.payments_live()` |
 | A landing page never advertises a journey we cannot sell online | `tests/test_seo.py` (authority check on every listed route and price token) |
-| The owner's test trip never blocks a client or counts as revenue | hidden test vehicle/driver; `bookings.is_test` excluded from analytics, Ads export and funnel (`tests/test_test_trip.py`) |
+| The owner's mock never blocks a client or counts as revenue | hidden test vehicle/driver; `quotes.is_test` / `bookings.is_test` excluded from analytics, Ads export and funnel |
+| Only the authenticated owner can use a $1 mock quote | `/api`-scoped mock cookie, same-origin validation, stored quote mode, owner/allowlisted email |
+| A real trip always wins over an active mock for the owner's tracker | `services/tracking.py` chooses the registered device's real active booking first; only the isolated owner test resources are eligible as a fallback |
 | Staging is never indexed by search engines | `X-Robots-Tag: noindex` unless production on the brand's own domain (`main.py`) |
 
 ## Request lifecycle
@@ -55,6 +57,11 @@ tools/make_images.py    renders static/og.png (share image) and static/logo.png 
 `POST /api/bookings` → `services.bookings.create` → instant: hold + `payments.start_checkout` → Stripe →
 `POST /api/webhooks/stripe` → `confirm_paid` (receipt email + GA4 purchase via outboxes) →
 `/admin` status taps → `/trip/{token}` live view → completed (location deleted, review request).
+
+The website's mock checkbox selects the same lifecycle. The quote persists the owner-only mock mode and
+server-set amount; approval uses the existing test resources. Confirmation and status emails use the normal
+outbox, and the real registered tracker feeds the mock only while no real trip is active. The admin's mock
+email status view reports provider acceptance/failure; it does not simulate delivery.
 
 ## Extending
 

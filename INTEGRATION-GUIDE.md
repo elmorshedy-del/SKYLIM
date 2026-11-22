@@ -64,12 +64,17 @@ production, after every required launch gate passes; staging accepts test keys o
 
 ### Owner's $1 test trip
 
-`data.TEST_TRIP["enabled"] = True` shows **Start a $1 test trip** in `/admin`. It books a real trip through the
-normal path on a hidden test calendar (never blocks a client), opens Stripe Checkout for $1, and confirms via
-the webhook like any booking. Pay it, check the trip page and Stripe's receipt, then **Cancel** it in `/admin`
-to test the refund. Test trips never reach Google Analytics, Google Ads or the funnel. With a live key it needs
-`APP_ENV=production` (clients stay on requests until the launch gates pass). Set `enabled` to `False` when done;
-`/admin` reminds you while it is on.
+`data.TEST_TRIP["enabled"] = True` makes **Mock reservation · $1.00** available in the normal website form,
+below the destination, after the owner signs in to `/admin` (sign out and sign back in once after upgrading).
+Select a route, time, addresses, contact and cabin preferences exactly as a customer would; use the owner's email
+or a configured test address in `EMAIL_ALLOWLIST`. The quote and booking share the ordinary customer path, but
+the server fixes the amount at $1, uses a hidden test calendar and excludes the quote and trip from analytics.
+Pay in Stripe Checkout, open the confirmation email's trip link, then press **En route** in `/admin`. The owner's
+configured Traccar phone can report to the active mock while no real trip is active; real trips always take priority.
+`/admin` → **Mock trip email delivery** shows whether each email is pending, sent, suppressed, manual or failed.
+Cancel before boarding to test refunds, or finish the trip to test location shutdown. With a live key the test
+needs `APP_ENV=production` (clients still stay on requests until launch gates pass); with a test key no real money
+is charged. Set `enabled` to `False` when done; mock access is then refused server-side.
 
 ## 4. Live location (Traccar Client)
 

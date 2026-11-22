@@ -3,6 +3,8 @@
 Privacy rules:
   * a report is stored only if the reporting phone's driver has a trip that is
     en route / arrived / in vehicle, and only fixes taken after En route
+  * for the owner's active mock trip, the launch fleet's tracker may be used
+    only when it has no active real trip; a client's trip always takes priority
   * riders see the latest fix for their own active trip — never history,
     never before the trip starts, never after it ends
   * the shareable view carries status and position only: no names, phone
@@ -16,6 +18,8 @@ from datetime import datetime, timedelta
 
 import psycopg
 
+import data
+from ..db import DRIVER_ID, VEHICLE_ID, TEST_DRIVER_ID, TEST_VEHICLE_ID
 from ..domain.status import ACTIVE_TRIP, LABELS, Status
 from ..domain.tracking import Fix
 from ..errors import Conflict, NotFound
@@ -32,13 +36,18 @@ def ingest(conn: psycopg.Connection, fix: Fix, now: datetime) -> str:
     if not tracker:
         return "unknown_device"
     conn.execute("UPDATE trackers SET last_seen_at = %s WHERE id = %s", (now, tracker["id"]))
+    owner_tracker = ((tracker["kind"] == "phone" and tracker["driver_id"] == DRIVER_ID)
+                     or (tracker["kind"] == "vehicle" and tracker["vehicle_id"] == VEHICLE_ID))
     trip = conn.execute(
         """SELECT id, trip_started_at FROM bookings
            WHERE status IN ('en_route', 'arrived', 'in_vehicle')
              AND ((%(kind)s = 'phone' AND driver_id = %(driver)s)
-               OR (%(kind)s = 'vehicle' AND vehicle_id = %(vehicle)s))
-           ORDER BY pickup_at LIMIT 1""",
-        {"kind": tracker["kind"], "driver": tracker["driver_id"], "vehicle": tracker["vehicle_id"]}).fetchone()
+               OR (%(kind)s = 'vehicle' AND vehicle_id = %(vehicle)s)
+               OR (%(allow_test)s AND is_test AND driver_id = %(test_driver)s AND vehicle_id = %(test_vehicle)s))
+           ORDER BY is_test, pickup_at LIMIT 1""",
+        {"kind": tracker["kind"], "driver": tracker["driver_id"], "vehicle": tracker["vehicle_id"],
+         "allow_test": bool(data.TEST_TRIP.get("enabled")) and owner_tracker,
+         "test_driver": TEST_DRIVER_ID, "test_vehicle": TEST_VEHICLE_ID}).fetchone()
     if not trip:
         return "no_active_trip"          # discarded: off-trip location is never kept
     if fix.reported_at > now + MAX_FUTURE_SKEW:
