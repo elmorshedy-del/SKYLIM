@@ -231,13 +231,14 @@ POPULAR_JOURNEYS = [("manhattan", "jfk"), ("manhattan", "ewr"), ("teb", "manhatt
 # Inputs to the cost model in app/domain/rates.py. Every number is the owner's to confirm.
 PRICING = {
     "approved": False,                    # owner flips to True; until then prices are "estimates"
-    "version": "2026-11-19-proposal",
+    "version": "2026-11-22-market",
     # by the hour, all-in (gratuity included)
     "hourly_cents": 14500,                # benchmark: Escalade hourly published ~$125/h + gratuity in NYC
     "hourly_min_hours": 3,
     "hourly_max_hours": 12,
     # point to point: price = committed time x rate + running cost + tolls + fixed share, grossed up for card fees
-    "target_hourly_cents": 7500,          # chauffeur pay + vehicle margin per committed hour
+    "target_hourly_cents": 6500,          # chauffeur pay + vehicle margin per committed hour (market-calibrated)
+    "price_reference": "manhattan",       # repositioning priced from Midtown, where the market's cars are
     "running_cents_per_mile": 60,         # fuel (~15 mpg at ~$3.30) + tyres, service, depreciation
     "fixed_cents_per_trip": 2200,         # livery insurance, licences, phone, hosting / expected trips
     "card_fee_rate": 0.029, "card_fee_fixed_cents": 30,
@@ -264,13 +265,30 @@ PRICING = {
 
 # Competitive calibration — what clients compare us with. Add real checks before launch
 # (Uber app, 10 routes x 3 times of day). all_in = fare + tolls + typical gratuity.
+# All-in = fare + tolls + fees + a 20% tip where not included. Positioning: at or just under Uber Black SUV
+# and mid-market Escalade operators; never above the premium end. One price in both directions, as the
+# market quotes airport transfers.
 BENCHMARKS = [
+    {"route": ("manhattan", "lga"), "who": "Uber Black SUV (avg fare, Midtown West)", "all_in_cents": 19500,
+     "checked": "2026-11-22", "source": "gothamride.com/blog/black-car-vs-uber-black-nyc: $162 + 20% tip"},
+    {"route": ("manhattan", "ewr"), "who": "Uber Black SUV (avg fare, Midtown West)", "all_in_cents": 26200,
+     "checked": "2026-11-22", "source": "gothamride.com/blog/black-car-vs-uber-black-nyc: $218 + 20% tip"},
+    {"route": ("manhattan", "lga"), "who": "NYC Lux Ride (Escalade)", "all_in_cents": 22800,
+     "checked": "2026-11-22", "source": "nycluxride.com/rates: $190 incl. tolls, fees, taxes + 20% tip"},
+    {"route": ("manhattan", "jfk"), "who": "NYC Lux Ride (Escalade)", "all_in_cents": 26400,
+     "checked": "2026-11-22", "source": "nycluxride.com/rates: $220 incl. tolls, fees, taxes + 20% tip"},
+    {"route": ("manhattan", "ewr"), "who": "NYC Lux Ride (Escalade)", "all_in_cents": 26400,
+     "checked": "2026-11-22", "source": "nycluxride.com/rates: $220 incl. tolls, fees, taxes + 20% tip"},
+    {"route": ("manhattan", "lga"), "who": "LS Black Cars (Escalade ESV, from)", "all_in_cents": 21000,
+     "checked": "2026-11-22", "source": "lsblackcars.com: from $169.05 incl. STC + fuel; tolls + 20% tip added"},
+    {"route": ("manhattan", "lga"), "who": "Gotham Ride (Escalade, all-in)", "all_in_cents": 33200,
+     "checked": "2026-11-22", "source": "gothamride.com: from $332 incl. tolls and tip (premium end)"},
+    {"route": ("manhattan", "jfk"), "who": "Gotham Ride (Escalade, all-in)", "all_in_cents": 33700,
+     "checked": "2026-11-22", "source": "gothamride.com: from $337 incl. tolls and tip (premium end)"},
     {"route": ("bergen", "jfk"), "who": "Air Brook (SUV)", "all_in_cents": 35500, "checked": "2026-11-19",
      "source": "airbrook.com: from $284.40 + tolls + >=15% gratuity"},
-    {"route": None, "who": "Escalade ESV hourly, NYC", "all_in_cents": 15000, "unit": "hour", "checked": "2026-10",
-     "source": "blackcarservice.nyc published hourly rate incl. gratuity"},
-    {"route": None, "who": "Uber Black SUV, NYC 5 mi / 16 min", "all_in_cents": 11000, "checked": "2026-10-11",
-     "source": "fareestimate.com $75-107 excl. tolls, fees and tip (midpoint + 20% tip)"},
+    {"route": None, "who": "NYC Executive Car (Escalade ESV) hourly", "all_in_cents": 14400, "unit": "hour",
+     "checked": "2026-11-22", "source": "nycexecutivecar.com: $120/h, 2-hour minimum, + 20% tip"},
 ]
 
 # --------------------------------------------------------------- scheduling

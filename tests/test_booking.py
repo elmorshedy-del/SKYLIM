@@ -19,7 +19,7 @@ from tests.helpers import approve, later, quote, request
 def test_server_calculates_amount_from_cost_model(now):
     cat = get_catalog()
     q = quote(now, origin="bergen", destination="jfk")
-    assert q["amount_cents"] == rates.transfer(cat, cat.places["bergen"], cat.places["jfk"]).cents
+    assert q["amount_cents"] == rates.journey(cat, cat.places["bergen"], cat.places["jfk"]).cents
     assert q["currency"] == "usd"
     assert q["price_status"] == ("firm" if cat.pricing_approved else "estimate")
 

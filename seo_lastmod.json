@@ -1,43 +1,43 @@
 {
  "/": {
-  "hash": "728b4e0a77a65a7d",
-  "date": "2026-11-21"
+  "hash": "c09504541b078be4",
+  "date": "2026-11-22"
  },
  "/accessibility": {
   "hash": "90df9619a19c6cb5",
   "date": "2026-11-21"
  },
  "/airport-transfers": {
-  "hash": "94487526a265ceb0",
-  "date": "2026-11-21"
+  "hash": "8a7b02008f9cb053",
+  "date": "2026-11-22"
  },
  "/airport-transfers/jfk": {
-  "hash": "f29176d9bd2e17fd",
-  "date": "2026-11-21"
+  "hash": "cfcbdd58369bbebf",
+  "date": "2026-11-22"
  },
  "/airport-transfers/laguardia": {
-  "hash": "0402779b7445278b",
-  "date": "2026-11-21"
+  "hash": "c958934b1b2385f5",
+  "date": "2026-11-22"
  },
  "/airport-transfers/newark": {
-  "hash": "2483cae6e958649e",
-  "date": "2026-11-21"
+  "hash": "486950bb560271b1",
+  "date": "2026-11-22"
  },
  "/airport-transfers/teterboro": {
-  "hash": "c8bd8fa6ea653727",
-  "date": "2026-11-21"
+  "hash": "ab74145c2cfa5a52",
+  "date": "2026-11-22"
  },
  "/nj-limo-service": {
-  "hash": "113c17aaf8a802c2",
-  "date": "2026-11-21"
+  "hash": "a37b4d1e5e83cb49",
+  "date": "2026-11-22"
  },
  "/nyc-chauffeur-service": {
-  "hash": "459171abb14a7590",
-  "date": "2026-11-21"
+  "hash": "65a2d7f51fb41bac",
+  "date": "2026-11-22"
  },
  "/pricing.md": {
-  "hash": "59e14c6d77556c56",
-  "date": "2026-11-21"
+  "hash": "cd767bde1dd7834a",
+  "date": "2026-11-22"
  },
  "/privacy": {
   "hash": "15dc28ec11d4e240",

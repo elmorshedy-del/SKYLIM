@@ -32,12 +32,24 @@ def _leg(cat: Catalog, a: Place, b: Place, crossing: float = 0) -> tuple[float, 
     return geo.leg(a.point, b.point, cat.params, crossing)
 
 
+def price_reference(cat: Catalog) -> Place:
+    """Where the car is assumed to come from and return to when a journey is priced.
+
+    data.PRICING["price_reference"] (Midtown): the city's cars sit there, and with back-to-back trips ours
+    often will too — so the price never depends on where the owner happens to garage the car. Scheduling
+    still uses the real home base (data.OPERATIONS["home_base"]).
+    """
+    code = cat.params.get("price_reference")
+    return cat.places[code] if code else cat.base
+
+
 def tolls_cents(cat: Catalog, origin: Place, dest: Place, total_miles: float) -> int:
-    """Round-trip toll estimate for base -> origin -> destination -> base."""
+    """Round-trip toll estimate for reference -> origin -> destination -> reference."""
     p = cat.params
     ends = (origin, dest)
+    loop = (price_reference(cat), origin, dest)
     t = 0.0
-    if cat.base.state == "NJ" and any(x.state in NY_EAST for x in ends):
+    if any(x.state == "NJ" for x in loop) and any(x.state in NY_EAST for x in loop):
         t += p["panynj_crossing_cents"]                   # one eastbound Hudson crossing per round trip
     if any(x.code == "manhattan" for x in ends):
         t += p["cbd_net_cents"]
@@ -57,8 +69,9 @@ def _price(cat: Catalog, committed_min: float, miles: float, extras_cents: float
 
 
 def transfer(cat: Catalog, origin: Place, dest: Place) -> Estimate:
+    """What one direction costs in committed vehicle time, from and back to the price reference."""
     p = cat.params
-    base = cat.base
+    base = price_reference(cat)
     app_mi, app_min = _leg(cat, base, origin, origin.crossing_min * 0.5)
     load_mi, load_min = _leg(cat, origin, dest, max(origin.crossing_min, dest.crossing_min))
     ret_mi, ret_min = _leg(cat, dest, base, dest.crossing_min * 0.5)
@@ -70,6 +83,18 @@ def transfer(cat: Catalog, origin: Place, dest: Place) -> Estimate:
     tolls = tolls_cents(cat, origin, dest, miles)
     return Estimate(cents=_price(cat, committed, miles, tolls + parking), loaded_minutes=round(load_min),
                     committed_minutes=round(committed), miles=round(miles), tolls_cents=tolls)
+
+
+def journey(cat: Catalog, a: Place, b: Place) -> Estimate:
+    """The price of a journey between two places — the same in either direction, as the market quotes
+    airport transfers. It averages what each direction costs, so an airport pickup's waiting time and
+    parking are shared with the drop-off instead of loading one direction."""
+    there, back = transfer(cat, a, b), transfer(cat, b, a)
+    cents = int(max(cat.params["min_fare_cents"], math.ceil((there.cents + back.cents) / 2 / 500) * 500))
+    return Estimate(cents=cents, loaded_minutes=there.loaded_minutes,
+                    committed_minutes=round((there.committed_minutes + back.committed_minutes) / 2),
+                    miles=round((there.miles + back.miles) / 2),
+                    tolls_cents=round((there.tolls_cents + back.tolls_cents) / 2))
 
 
 def hourly(cat: Catalog, hours: float) -> int:

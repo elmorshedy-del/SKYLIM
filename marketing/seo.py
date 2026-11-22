@@ -37,7 +37,7 @@ STATES = {"NJ": "New Jersey", "NY": "New York", "CT": "Connecticut", "PA": "Penn
 def journey_price(origin: str, destination: str) -> tuple[int | None, int | None, dict | None]:
     """(list cents, price today, offer) for a journey, from the live cost model."""
     cat = get_catalog()
-    est = rates.transfer(cat, cat.places[origin], cat.places[destination])
+    est = rates.journey(cat, cat.places[origin], cat.places[destination])
     if est.committed_minutes > cat.params["max_committed_min_for_instant_price"]:
         return None, None, None
     amount, offer = rates.introductory(cat, est.cents, datetime.datetime.now(datetime.timezone.utc))

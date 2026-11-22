@@ -217,7 +217,7 @@ def decide_quote(cat: Catalog, req: TripRequest, *, now: datetime, min_notice_mi
         loaded = round(hours * 60)
         committed = None
     else:
-        est = rates.transfer(cat, cat.places[req.origin], cat.places[destination])
+        est = rates.journey(cat, cat.places[req.origin], cat.places[destination])
         amount, loaded, committed = est.cents, est.loaded_minutes, est.committed_minutes
         if committed > p["max_committed_min_for_instant_price"]:
             reasons.append("custom_route")

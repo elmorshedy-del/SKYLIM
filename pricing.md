@@ -1,6 +1,6 @@
 # Celeste Luxury Limo — Private chauffeur service
 
-> Machine-readable rates. Status: estimates, confirmed before payment. Updated 2026-11-21.
+> Machine-readable rates. Status: estimates, confirmed before payment. Updated 2026-11-22.
 
 Point-to-point prices are per vehicle, in USD, and include tolls, congestion charges, airport parking and gratuity. Vehicle: Cadillac Escalade with second-row captain's chairs, panoramic sunroof and onboard Wi-Fi; up to 6 guests.
 
@@ -11,16 +11,16 @@ Point-to-point prices are per vehicle, in USD, and include tolls, congestion cha
 
 | Journey | From |
 |---|---|
-| Manhattan → JFK International | $365 |
-| Manhattan → Newark Liberty International (EWR) | $255 |
-| Teterboro (TEB) — private aviation → Manhattan | $305 |
-| Manhattan → LaGuardia (LGA) | $300 |
-| Bergen County → JFK International | $370 |
-| Newark Liberty International (EWR) → Manhattan | $315 |
-| Hudson County → Manhattan | $230 |
-| Brooklyn → Newark Liberty International (EWR) | $280 |
-| Essex County → LaGuardia (LGA) | $300 |
-| Manhattan → Philadelphia, PA | $660 |
+| Manhattan → JFK International | $255 |
+| Manhattan → Newark Liberty International (EWR) | $230 |
+| Teterboro (TEB) — private aviation → Manhattan | $200 |
+| Manhattan → LaGuardia (LGA) | $195 |
+| Bergen County → JFK International | $315 |
+| Newark Liberty International (EWR) → Manhattan | $230 |
+| Hudson County → Manhattan | $155 |
+| Brooklyn → Newark Liberty International (EWR) | $260 |
+| Essex County → LaGuardia (LGA) | $285 |
+| Manhattan → Philadelphia, PA | $555 |
 
 ## Pages
 

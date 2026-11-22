@@ -27,7 +27,7 @@ def test_quote_api_prices_on_server(client):
     assert r.status_code == 200
     q = r.json()
     cat = get_catalog()
-    assert q["amount_cents"] == rates.transfer(cat, cat.places["bergen"], cat.places["jfk"]).cents
+    assert q["amount_cents"] == rates.journey(cat, cat.places["bergen"], cat.places["jfk"]).cents
     assert q["bookable"] and q["availability"] == "available"
 
 
