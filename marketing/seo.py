@@ -201,10 +201,8 @@ def pricing_md() -> str:
         "Wi-Fi; up to 6 guests.",
         "", f"- **By the hour:** ${data.PRICING['hourly_cents'] // 100} per hour, gratuity included, "
         f"{data.PRICING['hourly_min_hours']}-hour minimum.",
-        f"- **Point to point:** ${data.PRICING['tariff']['base_cents'] // 100} plus "
-        f"${data.PRICING['tariff']['per_mile_cents'] / 100:.2f} per road mile of the journey, rounded to $5, "
-        "all-inclusive and the same in either direction; very long journeys are capped at the round trip by the "
-        f"hour. Instant quote at {SITE}/#reserve", "", "## Popular journeys (one way)", "", "| Journey | From |", "|---|---|"]
+        "- **Point to point:** one fixed, all-inclusive price per route, the same in either direction, no surge; "
+        f"very long journeys are capped at the round trip by the hour. Instant quote at {SITE}/#reserve", "", "## Popular journeys (one way)", "", "| Journey | From |", "|---|---|"]
     for a, b in data.POPULAR_JOURNEYS:
         list_cents, _, _ = journey_price(a, b)
         lines.append(f"| {cat.places[a].name} → {cat.places[b].name} | "

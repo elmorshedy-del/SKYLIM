@@ -1,26 +1,26 @@
 # Celeste Luxury Limo — Private chauffeur service
 
-> Machine-readable rates. Status: estimates, confirmed before payment. Updated 2026-11-22.
+> Machine-readable rates. Status: estimates, confirmed before payment. Updated 2026-11-23.
 
 Point-to-point prices are per vehicle, in USD, and include tolls, congestion charges, airport parking and gratuity. Vehicle: Cadillac Escalade with second-row captain's chairs, panoramic sunroof and onboard Wi-Fi; up to 6 guests.
 
 - **By the hour:** $150 per hour, gratuity included, 3-hour minimum.
-- **Point to point:** $150 plus $6.94 per road mile of the journey, rounded to $5, all-inclusive and the same in either direction; very long journeys are capped at the round trip by the hour. Instant quote at https://celesteluxurylimo.com/#reserve
+- **Point to point:** one fixed, all-inclusive price per route, the same in either direction, no surge; very long journeys are capped at the round trip by the hour. Instant quote at https://celesteluxurylimo.com/#reserve
 
 ## Popular journeys (one way)
 
 | Journey | From |
 |---|---|
-| Manhattan → JFK International | $275 |
-| Manhattan → Newark Liberty International (EWR) | $265 |
-| Teterboro (TEB) — private aviation → Manhattan | $245 |
-| Manhattan → LaGuardia (LGA) | $220 |
-| Bergen County → JFK International | $345 |
-| Newark Liberty International (EWR) → Manhattan | $265 |
-| Hudson County → Manhattan | $220 |
-| Brooklyn → Newark Liberty International (EWR) | $280 |
-| Essex County → LaGuardia (LGA) | $325 |
-| Manhattan → Philadelphia, PA | $785 |
+| Manhattan → JFK International | $270 |
+| Manhattan → Newark Liberty International (EWR) | $285 |
+| Teterboro (TEB) — private aviation → Manhattan | $200 |
+| Manhattan → LaGuardia (LGA) | $205 |
+| Bergen County → JFK International | $300 |
+| Newark Liberty International (EWR) → Manhattan | $285 |
+| Hudson County → Manhattan | $145 |
+| Brooklyn → Newark Liberty International (EWR) | $225 |
+| Essex County → LaGuardia (LGA) | $250 |
+| Manhattan → Philadelphia, PA | $625 |
 
 ## Pages
 

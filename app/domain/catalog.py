@@ -6,10 +6,11 @@ a client as a wrong price.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import lru_cache
+from pathlib import Path
 from types import ModuleType
-from typing import Mapping
+from typing import Mapping, Optional
 
 KINDS = {"airport", "aviation", "city", "area"}
 STATES = {"NJ", "NY", "PA", "CT"}
@@ -56,6 +57,8 @@ class Catalog:
     pricing_approved: bool
     pricing_version: str
     scheduling: Mapping = field(default_factory=dict)
+    uber: Optional[object] = None                                 # uber.UberBenchmark, when configured
+    county_factor: Mapping[str, float] = field(default_factory=dict)
 
     @property
     def base(self) -> Place:
@@ -91,11 +94,23 @@ class Catalog:
         for a, b in pricing.get("road_miles", {}):
             if a not in places or b not in places:
                 raise ValueError(f"PRICING['road_miles'] has unknown place in {(a, b)!r}")
-        return cls(places=places, params=pricing, authority=dict(mod.OPERATIONS["authority"]),
-                   vehicle=dict(mod.VEHICLE), driver=dict(mod.DRIVER), policy=dict(mod.POLICY),
-                   amenities=dict(mod.AMENITIES), home_base=home,
-                   pricing_approved=bool(pricing["approved"]), pricing_version=str(pricing["version"]),
-                   scheduling=scheduling)
+        cat = cls(places=places, params=pricing, authority=dict(mod.OPERATIONS["authority"]),
+                  vehicle=dict(mod.VEHICLE), driver=dict(mod.DRIVER), policy=dict(mod.POLICY),
+                  amenities=dict(mod.AMENITIES), home_base=home,
+                  pricing_approved=bool(pricing["approved"]), pricing_version=str(pricing["version"]),
+                  scheduling=scheduling)
+        anchor = pricing.get("uber_anchor")
+        if anchor:
+            from . import rates, uber
+            bench = uber.load(Path(mod.__file__).resolve().parent / anchor["file"], tip=anchor["tip"],
+                              exclude={tuple(x) for x in anchor.get("exclude", [])}, extra=anchor.get("extra", []),
+                              side=anchor.get("side", "average"))
+            unknown = {c for pair in bench.anchors for c in pair} - set(places)
+            if unknown:
+                raise ValueError(f"benchmark names unknown places: {sorted(unknown)}")
+            cat = replace(cat, uber=bench)
+            cat = replace(cat, county_factor=rates.county_factors(cat))
+        return cat
 
 
 @lru_cache(maxsize=1)

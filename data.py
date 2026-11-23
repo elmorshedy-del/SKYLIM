@@ -259,23 +259,37 @@ POPULAR_JOURNEYS = [("manhattan", "jfk"), ("manhattan", "ewr"), ("teb", "manhatt
 # Inputs to the cost model in app/domain/rates.py. Every number is the owner's to confirm.
 PRICING = {
     "approved": False,                    # owner flips to True; until then prices are "estimates"
-    "version": "2026-11-22-benchmark",
-    # by the hour, all-in (gratuity included) — the benchmark's Escalade-class hourly rate
+    "version": "2026-11-23-uber-anchor",
+    # by the hour, all-in (gratuity included) — the market's Escalade-class hourly rate
     "hourly_cents": 15000,
     "hourly_min_hours": 3,
     "hourly_max_hours": 12,
 
-    # ---- point to point: the market's own price structure (see BENCHMARKS and pricing-proposal.md) ----
-    # Regular price = base + per-mile x road miles of the client's journey, all-in (tolls, congestion
-    # charges, gratuity). Calibrated on the benchmark's 24 published Escalade-class routes in every
-    # region: $150 + $6.94/mile, each within +-5%. Rounded to the nearest $5. Same price either way.
-    "tariff": {"base_cents": 15000, "per_mile_cents": 694, "fitted_on_routes": 24,
-               # beyond the benchmark's range (~100 mi) the market prices by time: the round trip at the
-               # hourly rate (+30 min turnaround) + tolls, whichever is lower
+    # ---- point to point: the same gap to Uber Black SUV in every county (app/domain/uber.py) ----
+    # Where Uber publishes the route (benchmarks/uber_routes.json, its own past-month averages): our price =
+    # Uber Black SUV for the trip starting outside NYC + 20% tip (ours includes gratuity), + premium. From
+    # the airport side Uber charges ~1.5x more, so there we sit well under it. Same price either way;
+    # all-in (tolls, congestion charges, gratuity); rounded to $5.
+    "uber_anchor": {
+        "file": "benchmarks/uber_routes.json", "premium": 0.05, "tip": 0.20,
+        # which Uber price: "suburb" — the direction starting outside NYC, what a client sees in the app when
+        # booking from home (owner's choice, 2026-11-23); "average" — both directions averaged
+        "side": "suburb",
+        # thin data: one direction only and far off every other published price for the route
+        "exclude": [("somerset", "manhattan"), ("hamptons", "manhattan"), ("hamptons", "jfk")],
+        # Uber's average Black SUV fare LaGuardia -> Midtown West, published by Uber and quoted by Gotham Ride
+        "extra": [{"route": ("manhattan", "lga"), "black_suv": 162,
+                   "source": "Uber average LGA to Midtown West (gothamride.com/blog/black-car-vs-uber-black-nyc)"}],
+    },
+    # Elsewhere: base + per-mile x road miles, fitted to the Uber anchors (least squares, log), times the
+    # county's own Uber factor where it has anchored routes (rates.county_factors).
+    "tariff": {"base_cents": 12500, "per_mile_cents": 535,
+               # beyond ~100 mi the market prices by time: the round trip at the hourly rate (+30 min
+               # turnaround) + tolls, whichever is lower
                "turnaround_min": 30},
-    # Road miles: the benchmark's published route distance where one exists; otherwise straight line x
+    # Road miles: a published route distance where one exists; otherwise straight line x
     # (road_factor + road_factor_near x e^(-straight/road_factor_scale_mi)) — urban trips wind more than
-    # highway runs. Fitted on the same 24 published routes.
+    # highway runs. Fitted on 24 routes with published distances (Detailed Drivers).
     "road_factor": 1.12, "road_factor_near": 1.45, "road_factor_scale_mi": 10,
     # Jersey Shore: every road north goes around Raritan and Lower New York Bay, through the Garden State
     # Parkway / Turnpike corridor at Woodbridge (Driscoll Bridge), so distances are measured through it.
@@ -291,6 +305,7 @@ PRICING = {
     # ---- cost floor: never sell a journey below what it costs in committed vehicle time ----
     # committed time x rate + running cost + tolls + fixed share, grossed up for card fees (rates.transfer)
     "target_hourly_cents": 6500,          # chauffeur pay + vehicle margin per committed hour
+    "floor_hourly_cents": 5000,           # the least we accept per committed hour (round trip), before costs
     "price_reference": "manhattan",       # repositioning costed from Midtown
     "running_cents_per_mile": 60,         # fuel (~15 mpg at ~$3.30) + tyres, service, depreciation
     "fixed_cents_per_trip": 2200,         # livery insurance, licences, phone, hosting / expected trips
@@ -319,15 +334,13 @@ PRICING = {
                      "ends_local": "2027-01-31T23:59"},
 }
 
-# Competitive calibration — what clients compare us with. all_in = what the client pays door to door:
-# fare + tolls + fees + a 20% gratuity where the operator does not include one.
-#   anchor: the benchmark the tariff reproduces — Detailed Drivers' Escalade ESV class ("First Class SUV"),
-#           published all-in (20% gratuity, tolls, tax) for every region, with route miles.
-#   check:  other published prices on the same journeys, to show where the tariff sits in each market.
+# Competitors on the same journeys — what clients compare us with. The anchor itself is Uber Black SUV
+# (benchmarks/uber_routes.json, PRICING["uber_anchor"]); these show where we sit against chauffeur services.
+# all_in = what the client pays door to door: fare + tolls + fees + a 20% gratuity where not included.
 # Routes are place codes (both directions cost the same). Optional "at": the town the price is quoted for.
 BENCHMARKS = [
-    # --- anchor: Detailed Drivers, Escalade ESV, all-in --------------------------------------------
-    *[{"route": r, "at": at, "miles": mi, "who": "Detailed Drivers (Escalade ESV)", "role": "anchor",
+    # --- Detailed Drivers, Escalade ESV, all-in, published for every region with route miles ----------
+    *[{"route": r, "at": at, "miles": mi, "who": "Detailed Drivers (Escalade ESV)", "role": "check",
        "all_in_cents": c * 100, "checked": "2026-11-22", "source": src}
       for r, at, mi, c, src in [
         (("manhattan", "lga"), "Midtown", 10.1, 210, "detaileddrivers.com/guides/nyc-car-service-cost"),
@@ -389,18 +402,41 @@ BENCHMARKS = [
     {"route": ("rockland", "jfk"), "at": "Nanuet", "who": "Air Brook (SUV)", "role": "check",
      "all_in_cents": 37500, "checked": "2026-11-22",
      "source": "airbrook.com/service-area/jfk-airport-car-service: from $302.25 + 20% + ~$13 tolls"},
+    # --- checks: Princeton (local operators) ------------------------------------------------------------
+    {"route": ("mercer", "jfk"), "at": "Princeton", "who": "Princeton Car Service (Luxury SUV, from)", "role": "check",
+     "all_in_cents": 41300, "plus": "+ gratuity if not included", "checked": "2026-11-23",
+     "source": "princetoncarservice.com/princeton-to-jfk-airport: Escalade / Denali / Suburban from $413"},
+    {"route": ("mercer", "jfk"), "at": "Princeton", "who": "Islip Limo (SUV)", "role": "check",
+     "all_in_cents": 42800, "plus": "+ extras marked *", "checked": "2026-11-23",
+     "source": "isliplimocarservice.com/service-area/princeton-car-service: JFK to Princeton SUV $428*"},
+    {"route": ("mercer", "jfk"), "at": "Princeton → JFK only", "who": "Uber Premier (sedan, owner's app check)",
+     "role": "check", "all_in_cents": 36000, "checked": "2026-11-23",
+     "source": "Uber app, Princeton to JFK: Premier $300 + 20% tip; Uber shows no Black SUV from Princeton"},
     # --- checks: Long Island ---------------------------------------------------------------------------
     {"route": ("hamptons", "manhattan"), "who": "Wheely (Business SUV)", "role": "check", "all_in_cents": 70000,
      "plus": "+ tolls, taxes, fees", "checked": "2026-11-22",
      "source": "wheely.com/en/essentials/the-hamptons-by-wheely: $700 excl. taxes, regulatory fees, tolls"},
     # --- hourly ----------------------------------------------------------------------------------------
-    {"route": None, "unit": "hour", "who": "Detailed Drivers (Escalade ESV)", "role": "anchor",
+    # (qualitative competitors are in COMPETITOR_NOTES)
+    {"route": None, "unit": "hour", "who": "Detailed Drivers (Escalade ESV)", "role": "check",
      "all_in_cents": 15000, "checked": "2026-11-22", "source": "detaileddrivers.com: $150/h all-in, 3-hour minimum"},
     {"route": None, "unit": "hour", "who": "Gotham Ride (Business SUV)", "role": "check",
      "all_in_cents": 18000, "checked": "2026-11-22",
      "source": "gothamride.com: from $180/h incl. gratuity, 2-hour minimum"},
     {"route": None, "unit": "hour", "who": "NYC Executive Car (Escalade ESV)", "role": "check",
      "all_in_cents": 14400, "checked": "2026-11-22", "source": "nycexecutivecar.com: $120/h + 20% tip, 2-hour minimum"},
+]
+
+# Competitors that publish no prices: how they charge, from their own sites (checked 2026-11-23).
+COMPETITOR_NOTES = [
+    {"who": "EmpireCLS", "source": "empirecls.com/faq",
+     "how": "Quote or account only. A flat-rate transfer is billed for the time the vehicle leaves its "
+            "facility until it returns, plus an $18 airport fee, a fuel surcharge, an administration fee, "
+            "gratuity, tolls and parking; $20-30 per extra stop; $25 between midnight and 5am."},
+    {"who": "Dav El | BostonCoach", "source": "bostoncoach.com/faq",
+     "how": "Quote or account only. Flat rates for selected destinations; otherwise billed in 30-minute "
+            "increments plus a positioning charge at 1.5x the hourly rate, an operating-cost surcharge, an "
+            "administrative fee, tolls, parking and taxes; waiting $8.25 per 5 minutes."},
 ]
 
 # --------------------------------------------------------------- scheduling
@@ -493,11 +529,11 @@ FAQS = [
      "Newark, JFK, LaGuardia, Teterboro, Morristown and Westchester airports. For anything further, ask; we "
      "arrange long-distance journeys regularly."),
     ("How is the price calculated?",
-     "Point-to-point journeys are priced by the road miles of your journey: a base fare plus a rate per mile, "
-     "the same way the region's established chauffeur services price, with tolls, congestion charges and gratuity "
-     "included. It costs the same in either direction, and very long journeys never cost more than the round trip "
-     "by the hour. Hourly service is a single all-inclusive hourly rate with a three-hour minimum. The price you "
-     "confirm is the price you pay."),
+     "Every point-to-point journey has one fixed price for your route, set close to what a premium SUV ride "
+     "costs on the same trip — with tolls, congestion charges and gratuity already included, and no surge. It "
+     "costs the same in either direction, and very long journeys never cost more than the round trip by the hour. "
+     "Hourly service is a single all-inclusive hourly rate with a three-hour minimum. The price you confirm is "
+     "the price you pay."),
     ("How quickly is my reservation confirmed?",
      "Usually the moment payment clears. Before a time is offered, our system checks the calendar — the drive to "
      "you, your journey and the drive back — so a confirmed reservation is one we can keep. Very short notice, "

@@ -1,16 +1,17 @@
 """Pricing — one implementation shared by live quotes, the website and tools/rate_model.py.
 
-A journey's regular price follows the market's own structure (data.BENCHMARKS): a base plus a rate per
-road mile of the client's journey, all-in, the same in either direction — calibrated on the benchmark's
-published Escalade-class prices in every region. Beyond the benchmark's range the market prices by time,
-so a long journey costs the round trip at the hourly rate if that is lower. A cost floor (committed
-vehicle time x target rate + running cost + tolls + fixed share, grossed up for card fees) guarantees a
-journey is never sold below what it costs. Hourly service is a published all-inclusive rate with a minimum.
+A journey's regular price keeps the same gap to Uber Black SUV in every county (app/domain/uber.py,
+PRICING["uber_anchor"]): where Uber publishes the route, its Black SUV benchmark + premium; elsewhere a base
+plus a rate per road mile fitted to those anchors, times the county's own Uber factor. All-in, the same in
+either direction. Long journeys never cost more than the round trip at the hourly rate. A cost floor (the
+journey and the drive back at a minimum rate per committed hour + running cost + tolls + fixed share, grossed
+up for card fees) guarantees a journey is never sold below what it costs. Hourly service is a published
+all-inclusive rate with a minimum.
 """
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from ..config import LOCAL_TZ
@@ -28,7 +29,7 @@ class Estimate:
     miles: int
     tolls_cents: int
     road_miles: float = 0.0    # the client's journey, as priced
-    rule: str = "cost"         # what set the price: tariff | by_time | cost_floor | min_fare
+    rule: str = "cost"         # what set the price: uber | formula | by_time | cost_floor | min_fare
     cost_cents: int = 0        # the cost floor for this journey
 
 
@@ -118,17 +119,65 @@ def _round5(cents: float) -> int:
     return int(math.floor(cents / 500 + 0.5) * 500)
 
 
+def uber_anchor_cents(cat: Catalog, a: Place, b: Place) -> int | None:
+    """Our price where Uber publishes the route: its Black SUV benchmark (both directions, tip added) plus
+    our premium (PRICING["uber_anchor"]["premium"]), rounded to $5. None where Uber publishes nothing."""
+    bench = cat.uber
+    if bench is None or (a.code, b.code) not in bench.anchors:
+        return None
+    return _round5(bench.anchors[(a.code, b.code)] * 100 * (1 + cat.params["uber_anchor"]["premium"]))
+
+
+def formula_cents(cat: Catalog, a: Place, b: Place, miles: float) -> float:
+    """The tariff fitted to the Uber anchors (base + per road mile), for routes Uber does not publish."""
+    t = cat.params["tariff"]
+    return t["base_cents"] + t["per_mile_cents"] * miles
+
+
+def county_factors(cat: Catalog) -> dict[str, float]:
+    """For each county with Uber-anchored routes, how far its anchored prices sit from the formula (mean
+    ratio). Its other routes (e.g. to LaGuardia) use the same factor, so a county is priced consistently."""
+    ratios: dict[str, list[float]] = {}
+    for (x, y) in cat.uber.anchors if cat.uber else ():
+        for county, other in ((x, y), (y, x)):
+            if cat.places[county].kind == "area":
+                a, b = cat.places[county], cat.places[other]
+                ratios.setdefault(county, []).append(uber_anchor_cents(cat, a, b)
+                                                     / formula_cents(cat, a, b, road_miles(cat, a, b)))
+    return {c: sum(r) / len(r) for c, r in ratios.items()}
+
+
+def round_trip_cost(cat: Catalog, a: Place, b: Place) -> int:
+    """The cost floor: the journey and the empty drive back (or on to the next pickup), at the target rate
+    per committed hour + running cost + tolls + fixed share, grossed up for card fees. Waiting and parking
+    at an airport pickup are shared between the two directions, as the price is."""
+    p = cat.params
+    miles = road_miles(cat, a, b)
+    loaded = _leg(cat, a, b, max(a.crossing_min, b.crossing_min))[1]
+    wait = sum(p["airport_wait_min"] if x.is_airport else p["early_arrival_min"] for x in (a, b)) / 2
+    parking = sum(p["airport_parking_cents"] for x in (a, b) if x.is_airport) / 2
+    committed = wait + loaded * p["traffic_allowance"] + p["curbside_min"] + loaded * p["return_traffic_allowance"]
+    rate = dict(p, target_hourly_cents=p.get("floor_hourly_cents", p["target_hourly_cents"]))
+    return _price(replace(cat, params=rate), committed, 2 * miles, tolls_cents(cat, a, b, 2 * miles) + parking)
+
+
 def market_price(cat: Catalog, a: Place, b: Place, cost_cents: int) -> tuple[int, str, float]:
     """(regular price in cents, the rule that set it, road miles) for a journey between two places."""
     p, t = cat.params, cat.params["tariff"]
     miles = road_miles(cat, a, b)
-    candidates = {"tariff": t["base_cents"] + t["per_mile_cents"] * miles}
-    # long journeys: the round trip at the hourly rate (the market prices distance work by time)
-    loaded = _leg(cat, a, b, max(a.crossing_min, b.crossing_min))[1]
-    candidates["by_time"] = (p["hourly_cents"] * (2 * loaded + t["turnaround_min"]) / 60
-                             + tolls_cents(cat, a, b, 2 * miles))
-    rule = min(candidates, key=candidates.get)
-    cents = _round5(candidates[rule])
+    anchored = uber_anchor_cents(cat, a, b)
+    if anchored is not None:
+        rule, cents = "uber", anchored
+    else:
+        factors = [cat.county_factor[x.code] for x in (a, b) if x.code in cat.county_factor]
+        factor = sum(factors) / len(factors) if factors else 1.0
+        candidates = {"formula": formula_cents(cat, a, b, miles) * factor}
+        # long journeys: the round trip at the hourly rate (the market prices distance work by time)
+        loaded = _leg(cat, a, b, max(a.crossing_min, b.crossing_min))[1]
+        candidates["by_time"] = (p["hourly_cents"] * (2 * loaded + t["turnaround_min"]) / 60
+                                 + tolls_cents(cat, a, b, 2 * miles))
+        rule = min(candidates, key=candidates.get)
+        cents = _round5(candidates[rule])
     if cents < cost_cents:
         rule, cents = "cost_floor", cost_cents
     if cents < p["min_fare_cents"]:
@@ -141,7 +190,7 @@ def journey(cat: Catalog, a: Place, b: Place) -> Estimate:
     airport transfers. Committed time, miles and tolls average both directions (an airport pickup's waiting
     time and parking are shared with the drop-off); the price follows market_price."""
     there, back = transfer(cat, a, b), transfer(cat, b, a)
-    cost = int(math.ceil((there.cents + back.cents) / 2 / 500) * 500)
+    cost = round_trip_cost(cat, a, b)
     cents, rule, miles = market_price(cat, a, b, cost)
     return Estimate(cents=cents, loaded_minutes=there.loaded_minutes,
                     committed_minutes=round((there.committed_minutes + back.committed_minutes) / 2),

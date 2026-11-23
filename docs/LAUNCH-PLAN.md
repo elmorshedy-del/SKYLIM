@@ -88,11 +88,12 @@ calendar already supports multiple vehicles and drivers.
   demand-driven surges unfair.
 
 **Policy**
-1. **List price = the long-run price**, set at the market's Escalade price in every county: $150 + $6.94 per
-   road mile, all-in — the structure Detailed Drivers publishes for its Escalade ESV class across NYC, Long
-   Island, Westchester, Connecticut and New Jersey (`data.PRICING["tariff"]`, `app/domain/rates.py`), never
-   below cost. Examples: Manhattan ↔ JFK $275 · LaGuardia $220 · Newark $265 · Bergen ↔ JFK $345 · hourly
-   $150. Every county and the competitor evidence: `pricing-proposal.md` (`python3 tools/rate_model.py --write`).
+1. **List price = the long-run price**, at the same gap to Uber Black SUV in every county: Uber's own
+   published route average for the trip starting outside NYC (what a client sees when booking from home) + a
+   20% tip + 5% (`data.PRICING["uber_anchor"]`, `benchmarks/uber_routes.json`, `app/domain/uber.py`); counties
+   Uber does not publish use a formula fitted to those prices; never below cost. Examples: Manhattan ↔ JFK $270
+   · LaGuardia $205 · Newark $285 · Princeton ↔ JFK $470 · hourly $150. Every county with the Uber and
+   chauffeur comparisons: `pricing-proposal.md` (`python3 tools/rate_model.py --write`).
 2. **Launch with a visible "Introductory rate"** (10% off, rounded down to $5, until 31 January 2027) instead of
    lower list prices: clients see ~~$275~~ $245. NYC rule 6 RCNY § 5-95: offered at launch, and the regular
    price must then be kept for at least 30 days. Switch: `PRICING["introductory"]["active"]`.
